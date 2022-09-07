@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Each channel corresponds to each fork
 var ch1 = make(chan int)
 var ch2 = make(chan int)
 var ch3 = make(chan int)
@@ -17,6 +18,7 @@ func philosopher(ID int, fork1 chan int, fork2 chan int) {
 	ate := 1
 	thoughts := 0
 	fmt.Printf("Philosopher %d is thinking... \n", ID)
+	//loop continues until philosopher eats 3 times
 	for ate <= maxEats {
 		var y = <-fork1 //Receive fork1 when it is available (i.e something in the channel)
 		var x = <-fork2 //receive fork2 when it is available
@@ -27,7 +29,6 @@ func philosopher(ID int, fork1 chan int, fork2 chan int) {
 		fmt.Printf("Philosopher %d is thinking again with thought %d... \n", ID, thoughts) //Prints when Philosopher is done eating
 		fork1 <- y                                                                         //Put fork1 down
 		fork2 <- x                                                                         //put fork2 down
-
 	}
 }
 
