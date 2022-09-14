@@ -1,4 +1,10 @@
-Run the solution for the Dining Philosophers problem using the command 
+Submission for group frjokr, consisting of
+
+* Jonas Brock-Hanash
+* Frederik Bøye Henriksen
+* Kristian Moltke Reitzel 
+
+To run the solution for the Dining Philosophers problem use the command 
 
 `go run HandIn1.go`
 
