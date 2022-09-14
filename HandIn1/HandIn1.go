@@ -23,12 +23,12 @@ func philosopher(ID int, fork1Avail chan int, fork1PutDown chan int, fork2Avail 
 	ate := 1
 	thoughts := 0
 	fmt.Printf("Philosopher %d is thinking... \n", ID)
-	//loop continues until philosopher eats 3 times
-	for ate <= maxEats {
-		time.Sleep(50 * time.Millisecond) //To prove that the code is running concurrently
+
+	for ate <= maxEats { //loop continues until philosopher eats 3 times
+		time.Sleep(50 * time.Millisecond) //To prove that the code is running concurrently, wait 50 milisec before picking up fork. Works without, but print statements will make it hard to see.
 		var y = <-fork1Avail              //Receive fork1 when it is available (i.e something in the channel)
 		var x int                         //variable declaration for fork2
-		select {
+		select {                          //This section avoids deadlocks.
 		case x = <-fork2Avail: //receive fork2 if it is available
 			fmt.Printf("Philosopher %d is eating with fork %d and %d for the %d time \n", ID, y, x, ate) //prints when Philosopher eats successfully
 			ate++
@@ -38,18 +38,17 @@ func philosopher(ID int, fork1Avail chan int, fork1PutDown chan int, fork2Avail 
 			fmt.Printf("Philosopher %d is thinking again with thought %d... \n", ID, thoughts) //Prints when Philosopher is done eating
 		default:
 			fork1PutDown <- y //Put fork1 down if there is no fork2 available to avoid deadlock
-			//continue          //loop
 		}
 
 	}
-	fmt.Printf("Philosopher %d is finished eating \n", ID)
+	fmt.Printf("##### Philosopher %d is finished eating ##### \n", ID)
 }
 
 func fork(ID int, chAvailable chan int, chPutDown chan int) {
 	chAvailable <- ID //Fork broadcasts it is *initially* available
-	for {             //Checks if the fork has been put down.
-		<-chPutDown
-		fmt.Printf("Fork %d has been put down \n", ID)
+	for {
+		<-chPutDown //Checks if the fork has been put down.
+		//fmt.Printf("Fork %d has been put down \n", ID) //Consider restoring this line, to see forks being put down
 		chAvailable <- ID //If fork has been put down, make it available again
 	}
 }
@@ -61,12 +60,12 @@ func main() {
 	go fork(3, ch3Available, ch3PutDown)
 	go fork(4, ch4Available, ch4PutDown)
 	go fork(5, ch5Available, ch5PutDown)
-	go philosopher(2, ch2Available, ch2PutDown, ch1Available, ch1PutDown)
 	go philosopher(1, ch5Available, ch5PutDown, ch1Available, ch1PutDown)
-	go philosopher(3, ch2Available, ch2PutDown, ch3Available, ch3PutDown)
+	go philosopher(2, ch1Available, ch1PutDown, ch2Available, ch2PutDown)
+	go philosopher(3, ch3Available, ch3PutDown, ch2Available, ch2PutDown)
 	go philosopher(4, ch3Available, ch3PutDown, ch4Available, ch4PutDown)
 	go philosopher(5, ch4Available, ch4PutDown, ch5Available, ch5PutDown)
 
-	time.Sleep(5000 * time.Millisecond)
+	time.Sleep(5000 * time.Millisecond) //To ensure main thread does not end before all print commands.
 	fmt.Printf("Finish program")
 }
