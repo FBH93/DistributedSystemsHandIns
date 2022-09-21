@@ -36,7 +36,7 @@ func client(message string) {
 					p = packet{chars[i], i, true}
 				}
 				chClientToServer <- p
-				<-chServerToClient //Wait until server confirms receival of packet
+				<-chServerToClient //Wait until server confirms receival of packet. This is where we can handle package loss
 			}
 
 		}
@@ -57,7 +57,7 @@ func server() {
 			receivedPacket := <-chClientToServer
 			chServerToClient <- receivedPacket.sequenceNum
 			fmt.Printf("Server received packet with content '%c' and seq '%d'\n", receivedPacket.content, receivedPacket.sequenceNum)
-			receivedChars = append(receivedChars, receivedPacket.content)
+			receivedChars = append(receivedChars[:receivedPacket.sequenceNum], receivedPacket.content) //insert the received rune, at the position of the received sequenceNum in the Rune[] in order to handle message reordering
 			if receivedPacket.lastPacket {
 				fmt.Printf("All packets received")
 				break
