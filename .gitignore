@@ -242,3 +242,5 @@ fabric.properties
 *.code-workspace
 
 # End of https://www.toptal.com/developers/gitignore/api/goland,intellij,visualstudiocode,go
+
+.fake
