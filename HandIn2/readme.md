@@ -1,3 +1,18 @@
+Submission for group frjokr, consisting of
+
+* Jonas Brock-Hanash
+* Frederik Bøye Henriksen
+* Kristian Moltke Reitzel 
+
+To run the solution for the TCP/IP problem use the command:
+
+`go run HandIn2.go`
+
+in a command prompt in the HandIn2-folder.
+
+Note: the scenario in our implementation is that the client sends a message to the server. The server can handle multiple messages.
+The current HandIn2.Go only simulates TCP/IP via threads, and without middleware.
+
 # a) What are packages in your implementation? What data structure do you use to transmit data and meta-data? Marshalling??
 Packets are modeled using a struct `packet` that contain the content 
 

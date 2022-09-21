@@ -75,15 +75,9 @@ func server() {
 
 func main() {
 
-	go client("Hello World")
 	go server()
+	go client("Hello World")
 	go client("This is another message")
-
-	//Two processes communicate with each other
-
-	//take the message and break it into small pieces and send
-
-	//The middleware should simulate the network. It can delay or lose packets.
 
 	time.Sleep(5000 * time.Millisecond)
 	fmt.Printf("Finish Program\n")
