@@ -1,0 +1,215 @@
+openapi: 3.0.3
+info:
+  title: ITU REST service 1.0
+  description: Hello, World!
+  version: 1.0.0
+servers:
+  - url: https://itu.dk/api/v1
+    variables: {}
+tags:
+  - name: student
+    description: Everything relating to students
+  - name: store
+    description: Access to Petstore orders
+    externalDocs:
+      description: Find out more about our store
+      url: http://swagger.io
+  - name: user
+    description: Operations about user
+paths:
+  /student:
+    put:
+      tags:
+        - student
+      summary: Update a student
+      description: Update an existing student by Id
+      operationId: updateStudent
+      requestBody:
+        description: Update an existent student
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/student'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/student'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/student'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/student'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/student'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Student not found
+        '405':
+          description: Validation exception
+
+    post:
+      tags:
+        - student
+      summary: Add a new student
+      description: Add a new student
+      operationId: addStudent
+      requestBody:
+        description: Add a new student
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/student'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/student'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/student'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/student'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/student'
+        '405':
+          description: Invalid input
+
+  /student/{studentId}:
+    get:
+      tags:
+        - student
+      summary: Find student by ID
+      description: Returns a single student
+      operationId: getStudentById
+      parameters:
+        - name: studentId
+          in: path
+          description: ID of student to return
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/student'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/student'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Pet not found
+    delete:
+      tags:
+        - student
+      summary: Deletes a student
+      description: delete a student
+      operationId: deleteStudent
+      parameters:
+          - name: studentId
+            in: path
+            description: Student id to delete
+            required: true
+            schema:
+              type: integer
+              format: int64
+      responses:
+        '400':
+          description: Invalid student value
+
+  /course:
+    post:
+      description: create a new course
+      parameters: 
+        - name: courseId
+          in: path
+          description: courseId to create
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+  /course/{courseId}:
+    get:
+      description: Get info about a course
+      parameters: 
+        - name: courseId
+          in: path
+          description: courseId to get
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+    delete:
+      description: Delete a course
+      parameters: 
+        - name: courseId
+          in: path
+          description: courseId to delete
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          
+components:
+  schemas:
+    student:
+      type: object
+      properties:
+        studentId:
+          type: integer
+          format: int64
+          example: 10
+        name:
+          type: string
+          example: John Doe
+        courses:
+          type: array
+          items:
+            $ref: '#/components/schemas/course'
+      xml:
+        name: student
+    course:
+      type: object
+      properties:
+        id: 
+          type: integer
+          format: int64
+          example: 1000
+        courseName:
+          type: string
+          example: Distributed Systems
+    teacher:
+      type: object
+      properties:
+        id: 
+          type: integer
+          format: int64
+          example: 1000
+        Name:
+          type: string
+          example: John Johnson
