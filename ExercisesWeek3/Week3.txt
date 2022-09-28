@@ -1,0 +1,31 @@
+User Story for Exercises
+Imagine ITU wants to be even better at delivering awesome courses, and having fabulous teachers.
+Let us help to reach this objective, by designing a REST api for a webservice, that will expose data about 
+
+ITU students and enrollments
+
+course workloads for each student
+
+course teachers, and their student popularity scores
+
+student satisfaction ratings for courses
+
+
+Let us create an RPC / REST service
+
+Define service endpoints - student, course, teacher using the Swagger editor
+Discuss what operations should be using GET, PUT, POST, DELETE
+Implement an RPC / REST service in Golang, that exposes your course endpoint
+Consume the RPC / REST course service endpoint by creating a client in Golang
+
+Let us examine the if our service is a micro service
+Discuss which endpoints of your web service *could* have a different lifecycle / supporting team. 
+Discuss which operations could be asynchronous
+Redesign your API to a set of microservices, and discuss your architectural choices. 
+Explain what is the difference between a RESTful API and a set of microservices.
+
+Let us go from HTTP REST to gRPC
+
+Create an IDL for your course endpoint
+Generate a gRPC client based on your IDL
+Discuss, when gRPC should be favored, and when REST should be favored
