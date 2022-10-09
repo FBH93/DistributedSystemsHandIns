@@ -3,3 +3,33 @@ package ChittyChat;
 
 option go_package = "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat";
 
+service ChittyChat {
+  rpc Chat (stream ChatRequest) returns (stream ChatResponse) {};
+}
+
+message ChatRequest {
+  string msg = 1;
+}
+
+message ChatResponse {
+  string msg = 1;
+}
+
+
+
+//message ChatMessage {
+//  string clientname = 1;
+//  string message = 2;
+//}
+//
+//message JoinRequest {
+//  string clientname = 1;
+//}
+//
+//message MessageResponse {
+//
+//}
+//
+//service JoinChitChat {
+//  rpc JoinChat(JoinRequest) returns (stream ChatMessage);
+//}
