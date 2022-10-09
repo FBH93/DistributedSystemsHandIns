@@ -1,0 +1,5 @@
+syntax = "proto3";
+package ChittyChat;
+
+option go_package = "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat";
+
