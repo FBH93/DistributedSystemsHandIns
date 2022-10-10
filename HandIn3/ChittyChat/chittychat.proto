@@ -9,6 +9,7 @@ service ChittyChat {
 
 message ChatRequest {
   string msg = 1;
+  string clientName = 2;
 }
 
 message ChatResponse {
