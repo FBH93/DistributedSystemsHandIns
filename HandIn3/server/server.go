@@ -15,7 +15,7 @@ type Server struct {
 	pb.UnimplementedChittyChatServer
 	name    string
 	port    string
-	clients map[string]bool // Set of clients
+	clients map[string]pb.ChittyChat_ChatServer // Set of clients
 	//TODO: Add mutex
 }
 
@@ -55,7 +55,7 @@ func launchServer() {
 	server := &Server{
 		name:    *serverName,
 		port:    *port,
-		clients: make(map[string]bool),
+		clients: make(map[string]pb.ChittyChat_ChatServer),
 	}
 
 	pb.RegisterChittyChatServer(grpcServer, server)
@@ -67,8 +67,8 @@ func launchServer() {
 }
 
 // TODO: Implement error if client name already exists
-func (s *Server) addClient(clientName string) {
-	s.clients[clientName] = true
+func (s *Server) addClient(clientName string, server pb.ChittyChat_ChatServer) {
+	s.clients[clientName] = server
 }
 
 func (s *Server) removeClient(clientName string) {
@@ -86,12 +86,18 @@ func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 
 	cliName := clientReq.ClientName
 	// Add client:
-	s.addClient(cliName)
+	s.addClient(cliName, server)
 
 	log.Printf(cliName + "Has joined the ChittyChat")
-	if err := server.Send(&pb.ChatResponse{Msg: cliName + "has joined the ChittyChat"}); err != nil {
-		log.Printf("Broadcast err: %v", err)
+	for _, serv := range s.clients {
+		if err := serv.Send(&pb.ChatResponse{Msg: cliName + " has joined the ChittyChat"}); err != nil {
+			log.Printf("Broadcast error: %v", err)
+		}
 	}
+
+	//if err := server.Send(&pb.ChatResponse{Msg: cliName + "has joined the ChittyChat"}); err != nil {
+	//	log.Printf("Broadcast err: %v", err)
+	//}
 
 	defer s.removeClient(cliName)
 
@@ -102,9 +108,19 @@ func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 			break
 		}
 		log.Printf("Broadcast: %s", response.Msg)
-		if err := server.Send(&pb.ChatResponse{Msg: response.Msg}); err != nil {
-			log.Printf("Broadcast err: %v", err)
+		for _, serv := range s.clients {
+			if err := serv.Send(&pb.ChatResponse{Msg: response.Msg}); err != nil {
+				log.Printf("Broadcast error: %v", err)
+			}
 		}
+
+		//if err := server.Send(&pb.ChatResponse{Msg: response.Msg}); err != nil {
+		//	log.Printf("Broadcast err: %v", err)
+		//}
 	}
 	return nil
 }
+
+//func (s *Server) broadcast(request pb.ChatRequest) {
+//
+//}
