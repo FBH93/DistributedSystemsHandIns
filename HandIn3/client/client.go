@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -24,6 +27,27 @@ func main() {
 	fmt.Println("Attempting to connect to server")
 	connectToServer()
 
+	// Get stream from server
+	stream, err := server.Chat(context.Background())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	go receive(stream)
+
+	parseInput(stream)
+}
+
+// Receive and print stream from server
+func receive(stream pb.ChittyChat_ChatClient) {
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Received: %s", resp.Msg)
+	}
 }
 
 func connectToServer() {
@@ -46,4 +70,33 @@ func connectToServer() {
 	server = pb.NewChittyChatClient(conn)
 	serverConn = conn
 	log.Printf("The connection is: %s\n", conn.GetState().String())
+}
+
+func parseInput(stream pb.ChittyChat_ChatClient) {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Post a message to ChittyChat:")
+
+	for {
+		fmt.Print("-> ")
+
+		// Read input into var input and any errors into err
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatalf("Input gave an error: %v", err)
+		}
+		// Trim input
+		input = strings.TrimSpace(input)
+
+		if serverConn.GetState().String() != "READY" {
+			//TODO: Try to substitute with log.Fatalf()
+			log.Printf("Client %s: Something was wrong with the connection to the server :(", *clientName)
+			continue
+		}
+
+		//TODO: Event logic goes here:
+		prefix := *clientName + ": "
+		if err := stream.Send(&pb.ChatRequest{Msg: prefix + input}); err != nil {
+			log.Fatal(err)
+		}
+	}
 }
