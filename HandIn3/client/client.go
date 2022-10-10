@@ -36,7 +36,13 @@ func main() {
 
 	go receive(stream)
 
+	// Ensure first message to server initializes the welcome message
+	if err := stream.Send(&pb.ChatRequest{Msg: "", ClientName: *clientName}); err != nil {
+		log.Fatal(err)
+	}
 	parseInput(stream)
+
+	//TODO: Leave message
 }
 
 // Receive and print stream from server

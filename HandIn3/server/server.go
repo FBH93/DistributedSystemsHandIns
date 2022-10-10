@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pb "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -12,8 +13,10 @@ import (
 
 type Server struct {
 	pb.UnimplementedChittyChatServer
-	name string
-	port string
+	name    string
+	port    string
+	clients map[string]bool // Set of clients
+	//TODO: Add mutex
 }
 
 // Flags:
@@ -50,8 +53,9 @@ func launchServer() {
 
 	// Make a server instance using the name and port from the flags
 	server := &Server{
-		name: *serverName,
-		port: *port,
+		name:    *serverName,
+		port:    *port,
+		clients: make(map[string]bool),
 	}
 
 	pb.RegisterChittyChatServer(grpcServer, server)
@@ -60,4 +64,47 @@ func launchServer() {
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve %v", err)
 	}
+}
+
+// TODO: Implement error if client name already exists
+func (s *Server) addClient(clientName string) {
+	s.clients[clientName] = true
+}
+
+func (s *Server) removeClient(clientName string) {
+	delete(s.clients, clientName)
+}
+
+func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
+	clientReq, err := server.Recv()
+	if err == io.EOF {
+		return err
+	}
+	if err != nil {
+		return err
+	}
+
+	cliName := clientReq.ClientName
+	// Add client:
+	s.addClient(cliName)
+
+	log.Printf(cliName + "Has joined the ChittyChat")
+	if err := server.Send(&pb.ChatResponse{Msg: cliName + "has joined the ChittyChat"}); err != nil {
+		log.Printf("Broadcast err: %v", err)
+	}
+
+	defer s.removeClient(cliName)
+
+	for {
+		response, err := server.Recv()
+		if err != nil {
+			log.Printf("recv err: %v", err)
+			break
+		}
+		log.Printf("Broadcast: %s", response.Msg)
+		if err := server.Send(&pb.ChatResponse{Msg: response.Msg}); err != nil {
+			log.Printf("Broadcast err: %v", err)
+		}
+	}
+	return nil
 }
