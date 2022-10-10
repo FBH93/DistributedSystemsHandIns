@@ -95,7 +95,8 @@ func parseInput(stream pb.ChittyChat_ChatClient) {
 
 		//TODO: Event logic goes here:
 		prefix := *clientName + ": "
-		if err := stream.Send(&pb.ChatRequest{Msg: prefix + input}); err != nil {
+		//TODO: Maybe Msg should be replaced with Message
+		if err := stream.Send(&pb.ChatRequest{Msg: prefix + input, ClientName: *clientName}); err != nil {
 			log.Fatal(err)
 		}
 	}
