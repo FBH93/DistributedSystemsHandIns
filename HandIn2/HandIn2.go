@@ -23,9 +23,11 @@ func client(message string) {
 
 	if serverAvailable {
 		fmt.Printf("Contacting server...\n")
+		fmt.Printf("Sending SYN packet to server...\n")
 		establishHandshake <- true
 		var handshakeEstablished = <-respondHandshake
 		if handshakeEstablished {
+			fmt.Printf("Received ACK acknowledgement from server. \n")
 			fmt.Printf("Handshake established. Ready to send packets\n")
 			chars := []rune(message) //split the message into slice of characters(runes)
 			for i := 0; i < len(chars); i++ {
@@ -48,7 +50,8 @@ func server() {
 	fmt.Printf("Server listening.... \n")
 	for {
 		<-establishHandshake
-		fmt.Printf("Server received request for handshake\n")
+		fmt.Printf("Server received SYN packet by client\n")
+		fmt.Printf("Responding to client with SYN-ACK packet\n")
 		respondHandshake <- true
 		fmt.Printf("Server acknowledged handshake. Ready to receive packets\n")
 		receivedMessage := ""
