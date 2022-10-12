@@ -5,18 +5,21 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	pb "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
 	"strings"
 	"time"
+
+	pb "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Flags:
 var clientName = flag.String("name", "Default Client", "Name of client")
 var serverPort = flag.String("port", "5400", "tcp server")
+
+var lampTime int32 = 0 //client starts with lamport time 0
 
 var server pb.ChittyChatClient
 var serverConn *grpc.ClientConn
@@ -45,6 +48,14 @@ func main() {
 	//TODO: Leave message
 }
 
+func increaseLamptime(receivedTime int32) {
+	if lampTime > receivedTime {
+		lampTime++
+	} else {
+		lampTime = receivedTime + 1
+	}
+}
+
 // Receive and print stream from server
 func receive(stream pb.ChittyChat_ChatClient) {
 	for {
@@ -52,7 +63,8 @@ func receive(stream pb.ChittyChat_ChatClient) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("Received: %s", resp.Msg)
+		increaseLamptime(resp.Time) //before printing received msg, increase time
+		log.Printf("[T:%d]Received: %s", lampTime, resp.Msg)
 	}
 }
 
@@ -75,7 +87,8 @@ func connectToServer() {
 
 	server = pb.NewChittyChatClient(conn)
 	serverConn = conn
-	log.Printf("The connection is: %s\n", conn.GetState().String())
+	increaseLamptime(lampTime) //Client has connected to server, increase time.
+	log.Printf("[T:%d] The connection is: %s\n", lampTime, conn.GetState().String())
 }
 
 func parseInput(stream pb.ChittyChat_ChatClient) {
@@ -83,7 +96,7 @@ func parseInput(stream pb.ChittyChat_ChatClient) {
 	fmt.Println("Post a message to ChittyChat:")
 
 	for {
-		fmt.Print("-> ")
+		fmt.Printf("-> ")
 
 		// Read input into var input and any errors into err
 		input, err := reader.ReadString('\n')
@@ -101,7 +114,8 @@ func parseInput(stream pb.ChittyChat_ChatClient) {
 
 		//TODO: Event logic goes here:
 		prefix := *clientName + ": "
-		if err := stream.Send(&pb.ChatRequest{Msg: prefix + input, ClientName: *clientName}); err != nil {
+		increaseLamptime(lampTime) //Before sending message to server, increase lamptime
+		if err := stream.Send(&pb.ChatRequest{Msg: prefix + input, ClientName: *clientName, Time: lampTime}); err != nil {
 			log.Fatal(err)
 		}
 	}
