@@ -44,8 +44,6 @@ func main() {
 		log.Fatal(err)
 	}
 	parseInput(stream)
-
-	//TODO: Leave message
 }
 
 func increaseLamptime(receivedTime int32) {

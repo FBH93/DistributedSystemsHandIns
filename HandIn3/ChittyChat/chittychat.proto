@@ -18,21 +18,3 @@ message ChatResponse {
   int32 time = 2;
 }
 
-
-
-//message ChatMessage {
-//  string clientname = 1;
-//  string message = 2;
-//}
-//
-//message JoinRequest {
-//  string clientname = 1;
-//}
-//
-//message MessageResponse {
-//
-//}
-//
-//service JoinChitChat {
-//  rpc JoinChat(JoinRequest) returns (stream ChatMessage);
-//}

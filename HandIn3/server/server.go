@@ -108,19 +108,17 @@ func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 	s.increaseLamptime(s.lampTime) //Increase time before broadcasting a client has joined.
 
 	log.Printf("[T:%d] Broadcasting: %s has joined the chat \n", s.lampTime, cliName)
+	// TODO: Refactor broadcast method
 	for _, client := range s.clients {
 		if err := client.Send(&pb.ChatResponse{Msg: cliName + " has joined the ChittyChat", Time: s.lampTime}); err != nil {
 			log.Printf("Broadcast error: %v", err)
 		}
 	}
 
-	//if err := server.Send(&pb.ChatResponse{Msg: cliName + "has joined the ChittyChat"}); err != nil {
-	//	log.Printf("Broadcast err: %v", err)
-	//}
-
 	defer s.removeClient(cliName, cliTime) //remove client and increase time when removed.
 
 	for {
+		// TODO: Implement leave message
 		response, err := server.Recv()
 		if err != nil {
 			log.Printf("recv err: %v", err)
@@ -139,7 +137,3 @@ func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 	}
 	return nil
 }
-
-//func (s *Server) broadcast(request pb.ChatRequest) {
-//
-//}
