@@ -11,6 +11,11 @@ To run the solution for the ChittyChat system use the command
 
 `go run client/client.go -name <enter a client name here> -port <enter a port here>`
 
+Alternatively, build the solution for easy run.
+
+`go build client/client.go` then run the .exe file with flags in command line `client.exe -name <name> -port <port>`
+`go build server/server.go` then run the .exe file with flags in command line `server.exe -ServerName <name> -port <port>`
+
 in separate command prompts in the HandIn3-folder. Multiple clients may be started.
 
 When running the files, the optional flags `-name` and `-port` may be left out to revert to default values. If the port on the server is changed, the clients must use the same port.
