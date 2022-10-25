@@ -34,6 +34,7 @@ func main() {
 	stream, err := server.Chat(context.Background())
 	if err != nil {
 		log.Println(err)
+		log.Printf("Could not connect to server. Is it running?")
 		return
 	}
 
