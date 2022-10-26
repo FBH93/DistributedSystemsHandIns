@@ -20,7 +20,7 @@ in separate command prompts in the HandIn3-folder. Multiple clients may be start
 
 When running the files, the optional flags `-name` and `-port` may be left out to revert to default values. If the port on the server is changed, the clients must use the same port.
 
-> WARNING: We have not taken into account multiple clients with the same name. This may create issues with with the log files, as they may overwrite each other's logs.
+> WARNING: We have not taken into account multiple clients with the same name. This may create issues with with the log files, as they will write to the same log file. The chat client will still work though.
 
 ## System Architecture
 

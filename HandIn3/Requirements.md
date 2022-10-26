@@ -26,7 +26,9 @@ The server will announce and broadcast when a user has joined.
 
 ## R7: Chat clients can drop out at any time
 
-Chat clients can drop out from the chat, by simply closing the cmd-client. The client leaving will also receie a good-bye message in the log to confirm they have disconnected.
+Chat clients can drop out from the chat, by simply closing the cmd-client. 
+
+The client leaving will also receie a good-bye message in the log to confirm they have disconnected (if closed with control+C).
 
 ## R8: A "Participant X left Chitty-Chat at Lamport time L" message is broadcast to all remaining Participants when Participant X leaves
 
