@@ -22,17 +22,33 @@ type Server struct {
 	//TODO: Add mutex
 }
 
+// sets the logger to use a log.txt file instead of the console
+func setLog() *os.File {
+	// Clears the log.txt file when a new server is started
+	if err := os.Truncate("Serverlog.txt", 0); err != nil {
+		log.Printf("Failed to truncate: %v", err)
+	}
+
+	// This connects to the log file/changes the output of the log informaiton to the log.txt file.
+	file, err := os.OpenFile("ServerLog.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	log.SetOutput(file)
+	return file
+}
+
 // Flags:
 var serverName = flag.String("name", "default server", "Server Name")
 var port = flag.String("port", "5400", "Server Port")
 
 func main() {
-	logfile := setLog() //print log to a log.txt file instead of the console
-	defer logfile.Close()
-	flag.Parse()
+	flag.Parse() //Parse the flags from command line to server.
+
+	logfile := setLog()   //print log to a log.txt file instead of the console
+	defer logfile.Close() //Close the log file when server closes.
 
 	fmt.Println("--- Server is starting ---")
-
 	go launchServer()
 
 	for {
@@ -41,7 +57,7 @@ func main() {
 }
 
 func launchServer() {
-	log.Printf("Server %s: Attempts to create listener on port %s\n", *serverName, *port)
+	fmt.Printf("INFO: Server %s: Attempts to create listener on port %s\n", *serverName, *port)
 
 	// Create listener lis tcp on given port or default port 5400
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", *port))
@@ -110,22 +126,6 @@ func (s *Server) broadcast(msg string) {
 	}
 }
 
-// sets the logger to use a log.txt file instead of the console
-func setLog() *os.File {
-	// Clears the log.txt file when a new server is started
-	if err := os.Truncate("log.txt", 0); err != nil {
-		log.Printf("Failed to truncate: %v", err)
-	}
-
-	// This connects to the log file/changes the output of the log informaiton to the log.txt file.
-	f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	log.SetOutput(f)
-	return f
-}
-
 // MAIN CHAT FUNCTION
 func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 	clientReq, err := server.Recv()
@@ -152,11 +152,11 @@ func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 	for {
 		response, err := server.Recv()
 		if err != nil {
-			log.Printf("recv err: stream closed")
+			fmt.Printf("ERROR: recv err: a stream closed \n")
 			break
 		}
 		s.increaseLamptime(response.Time) //Increase server time, based on time received from client.
-		log.Printf("[T:%d]Server received message %s from %s", s.lampTime, response.Msg, response.ClientName)
+		log.Printf("[T:%d] Server received message %s from %s", s.lampTime, response.Msg, response.ClientName)
 
 		//Broadcast received message to clients.
 		//sendMsg := fmt.Sprintf("[T:%d] Broadcasting: %s \n", s.lampTime, response.Msg)
