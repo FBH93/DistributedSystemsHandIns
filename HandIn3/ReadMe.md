@@ -21,7 +21,7 @@ in separate command prompts in the HandIn3-folder. Multiple clients may be start
 
 When running the files, the optional flags `-name` and `-port` may be left out to revert to default values. If the port on the server is changed, the clients must use the same port.
 
-> We have not taken into account multiple clients with the same name. This may create issues with with the log files, as they may overwrite each other's logs.
+> WARNING: We have not taken into account multiple clients with the same name. This may create issues with with the log files, as they may overwrite each other's logs.
 
 ## System Architecture
 
@@ -91,18 +91,19 @@ System logs can be found in the subfolder Assets, but for convenience we have co
 ![System logs](ChittyChat/Assets/Chatlogs.jpg)
 
 The interesting scenario is as follows:
-Start server
-Client 1 joins
-Client 2 joins
-Client 1 sends message
-Client 3 joins
-Client 2 sends a message
-Client 2 leaves
-Client 3 sends message
-Client 1 leaves
-Client 3 sends a message
-Client 3 leaves
-Server closure
+
+* Start server
+* Client 1 joins
+* Client 2 joins
+* Client 1 sends message
+* Client 3 joins
+* Client 2 sends a message
+* Client 2 leaves
+* Client 3 sends message
+* Client 1 leaves
+* Client 3 sends a message
+* Client 3 leaves
+* Server closure
 
 When running the ChittyChat program, new log files will be dynamically created, in the folder that the call to client.go/exe and server.go/exe is made from. If the log file already exists, it will be overwritten.
 
