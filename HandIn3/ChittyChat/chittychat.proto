@@ -1,0 +1,20 @@
+syntax = "proto3";
+package ChittyChat;
+
+option go_package = "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat";
+
+service ChittyChat {
+  rpc Chat (stream ChatRequest) returns (stream ChatResponse) {};
+}
+
+message ChatRequest {
+  string msg = 1;
+  string clientName = 2;
+  int32 time = 3;
+}
+
+message ChatResponse {
+  string msg = 1;
+  int32 time = 2;
+}
+
