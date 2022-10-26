@@ -1,5 +1,4 @@
 # Documentation for ChittyChat
-
 This is HandIn 3 submission for group frjokr, consisting of
 
 * Jonas Brock-Hanash
@@ -42,12 +41,10 @@ message ChatRequest {
   string msg = 1;
   string clientName = 2;
   int32 time = 3;
-  int32 time = 3;
 }
 
 message ChatResponse {
   string msg = 1;
-  int32 time = 2;
   int32 time = 2;
 }
 ```
