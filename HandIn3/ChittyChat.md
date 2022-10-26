@@ -49,7 +49,25 @@ message ChatResponse {
 
 ## Lamport Timestamps
 
-Describe how you have implemented the calculation of the Lamport timestamps
+Each node (that is, a client or server) maintains a `lampTime` field, which represents the internal lamport time of that node. All nodes start with a `lampTime` of zero. 
+
+The lamport time of the sending party is included in all RPC messages. 
+
+Both clients and servers have a helper method `increaseLamptime(receivedTime int32)`, which is responsible for determining what to increase the `lampTime` to, and takes an argument `receivedTime` which is compared to the internal lamport time. This function is called whenever an event which should increase the lamport time takes place. 
+
+The function either 
+
+1. increments `lampTime` by one in the event that the internal `lampTime` is larger than the received time OR
+2. sets `lampTime` to the received time plus one
+
+The events we decided to constitute an increase in lamport time are the following:
+
+- A client joining
+- A client leaving
+- A client sending a `ChatRequest` to the server
+- The server receiving a `ChatRequest` from a client
+- The server broadcasting a message (*one* broadcast event may send a `ChatResponse` to *many* clients)
+- A client receiving a `ChatResponse` from the server. 
 
 ## Diagram
 
