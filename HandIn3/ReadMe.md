@@ -57,6 +57,8 @@ The lamport time of the sending party is included in all RPC messages.
 
 Both clients and servers have a helper method `increaseLamptime(receivedTime int32)`, which is responsible for determining what to increase the `lampTime` to, and takes an argument `receivedTime` which is compared to the internal lamport time. This function is called whenever an event which should increase the lamport time takes place.
 
+To easily see when lamport times are evaluated, we have included debug messages in the console. These do not get included in the log files.
+
 The function either
 
 1. increments `lampTime` by one in the event that the internal `lampTime` is larger than the received time OR
