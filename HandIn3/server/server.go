@@ -76,11 +76,16 @@ func (s *Server) addClient(clientName string, server pb.ChittyChat_ChatServer, c
 	s.increaseLamptime(cliTime) //Increase lamptime
 }
 
+// Helper to remove clients
 func (s *Server) removeClient(clientName string, cliTime int32) {
 	delete(s.clients, clientName)
 	s.increaseLamptime(cliTime) //increase lamptime
+	leaveMsg := fmt.Sprintf("%s left the server at server time %d \n", clientName, s.lampTime)
+	log.Printf("[T:%d] %s", s.lampTime, leaveMsg) //log that client has left server.
+	s.broadcast(leaveMsg)                         //broadcast to all connected clients, that a client has left.
 }
 
+// Helper to evaluate lamport time
 func (s *Server) increaseLamptime(receivedTime int32) {
 	if s.lampTime > receivedTime {
 		s.lampTime++
@@ -89,6 +94,16 @@ func (s *Server) increaseLamptime(receivedTime int32) {
 	}
 }
 
+// Broadcast a message to all connected clients
+func (s *Server) broadcast(msg string) {
+	for _, client := range s.clients {
+		if err := client.Send(&pb.ChatResponse{Msg: msg, Time: s.lampTime}); err != nil {
+			log.Printf("Broadcast error: %v", err)
+		}
+	}
+}
+
+// MAIN CHAT FUNCTION
 func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 	clientReq, err := server.Recv()
 	if err == io.EOF {
@@ -100,15 +115,13 @@ func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 
 	cliName := clientReq.ClientName
 	cliTime := clientReq.Time
-	// Add client:
-	s.addClient(cliName, server, cliTime) //add client and increase lampTime when client has been connected to server
 
+	//JOIN CLIENT
+	s.addClient(cliName, server, cliTime)                                  //add client and increase lampTime when client has been connected to server
 	log.Printf("[T:%d] "+cliName+" Has joined the ChittyChat", s.lampTime) //log which client has joined, at some time.
+	s.increaseLamptime(s.lampTime)                                         //Increase time before broadcasting a client has joined.
+	log.Printf("[T:%d] Broadcasting: %s has joined the chat \n", s.lampTime, cliName)
 
-	s.increaseLamptime(s.lampTime) //Increase time before broadcasting a client has joined.
-
-	// TODO: Refactor broadcast method
-	log.Printf("Participant %s joined Chitty-Chat at server Lamport time %d\n", cliName, s.lampTime)
 	for _, client := range s.clients {
 		joinMsg := fmt.Sprintf("Participant %s joined Chitty-Chat at server Lamport time %d", cliName, s.lampTime)
 		if err := client.Send(&pb.ChatResponse{Msg: joinMsg, Time: s.lampTime}); err != nil {
@@ -116,25 +129,23 @@ func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 		}
 	}
 
+	//LEAVE CLIENT
 	defer s.removeClient(cliName, cliTime) //remove client and increase time when removed.
 
+	//RECEIVE MESSAGE
 	for {
-		// TODO: Implement leave message
 		response, err := server.Recv()
 		if err != nil {
 			log.Printf("recv err: %v", err)
 			break
 		}
+
 		s.increaseLamptime(response.Time) //Increase server time, based on time received from client.
 
-		//Broadcast msg received, to all clients.
+		//Broadcast received message to clients.
 		s.increaseLamptime(s.lampTime) //before broadcast, increase server lamptime
 		log.Printf("[T:%d] Broadcasting: %s \n", s.lampTime, response.Msg)
-		for _, client := range s.clients {
-			if err := client.Send(&pb.ChatResponse{Msg: response.Msg, Time: s.lampTime}); err != nil {
-				log.Printf("Broadcast error: %v", err)
-			}
-		}
+		s.broadcast(response.Msg) //Broadcast msg received, to all clients.
 	}
 	return nil
 }

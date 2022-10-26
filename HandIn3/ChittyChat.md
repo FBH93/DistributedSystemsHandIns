@@ -22,13 +22,15 @@ When running the files, the optional flags `-name` and `-port` may be left out t
 
 ## System Architecture
 
+We use bidirectional streaming. The stream opens when the client connects to the server, and stays open for the duration of the chat,so that we know a client has disconnected from the server when the stream closes. 
+
 We use a server-client architecture. All our client nodes communicate with our server node, who then handles the parsing of messages to other client nodes.
 
 ## Implemented RPC methods
 
 We have a single rpc method, that allows for a client to open a stream between the client and server, that allows for chat messages to be sent and received.
 
-###change this after lamport
+### change this after lamport
 
 ```golang
 service ChittyChat {
