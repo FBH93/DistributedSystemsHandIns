@@ -26,11 +26,9 @@ We use bidirectional streaming. The stream opens when the client connects to the
 
 We use a server-client architecture. All our client nodes communicate with our server node, who then handles the parsing of messages to other client nodes.
 
-## Implemented RPC methods
+## RPC method
 
-We have a single rpc method, that allows for a client to open a stream between the client and server, that allows for chat messages to be sent and received.
-
-### change this after lamport
+We have a single RPC method, that allows for a client to open a stream between the client and server, that allows for chat messages to be sent and received.
 
 ```golang
 service ChittyChat {
@@ -40,10 +38,12 @@ service ChittyChat {
 message ChatRequest {
   string msg = 1;
   string clientName = 2;
+  int32 time = 3;
 }
 
 message ChatResponse {
   string msg = 1;
+  int32 time = 2;
 }
 ```
 
