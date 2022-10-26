@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	pb "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat"
@@ -26,6 +27,8 @@ var serverName = flag.String("name", "default server", "Server Name")
 var port = flag.String("port", "5400", "Server Port")
 
 func main() {
+	logfile := setLog() //print log to a log.txt file instead of the console
+	defer logfile.Close()
 	flag.Parse()
 
 	fmt.Println("--- Server is starting ---")
@@ -104,6 +107,22 @@ func (s *Server) broadcast(msg string) {
 			log.Printf("Broadcast error: %v", err)
 		}
 	}
+}
+
+// sets the logger to use a log.txt file instead of the console
+func setLog() *os.File {
+	// Clears the log.txt file when a new server is started
+	if err := os.Truncate("log.txt", 0); err != nil {
+		log.Printf("Failed to truncate: %v", err)
+	}
+
+	// This connects to the log file/changes the output of the log informaiton to the log.txt file.
+	f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	log.SetOutput(f)
+	return f
 }
 
 // MAIN CHAT FUNCTION

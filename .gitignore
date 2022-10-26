@@ -1,6 +1,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/go,goland,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,goland,visualstudiocode
 
+# log files:
+log.txt
+
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
