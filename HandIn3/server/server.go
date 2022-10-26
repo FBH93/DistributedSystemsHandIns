@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	pb "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat"
@@ -19,7 +20,7 @@ type Server struct {
 	port     string
 	clients  map[string]pb.ChittyChat_ChatServer // Set of clients
 	lampTime int32
-	//TODO: Add mutex
+	mutex    sync.Mutex
 }
 
 // Flags:
@@ -74,13 +75,17 @@ func launchServer() {
 
 // TODO: Implement error if client name already exists
 func (s *Server) addClient(clientName string, server pb.ChittyChat_ChatServer, cliTime int32) {
+	s.mutex.Lock()
 	s.clients[clientName] = server
+	s.mutex.Unlock()
 	s.increaseLamptime(cliTime) //Increase lamptime
 }
 
 // Helper to remove clients
 func (s *Server) removeClient(clientName string, cliTime int32) {
+	s.mutex.Lock()
 	delete(s.clients, clientName)
+	s.mutex.Unlock()
 	s.increaseLamptime(cliTime) //increase lamptime
 	leaveMsg := fmt.Sprintf("Participant %s left the server at server Lamport time %d \n", clientName, s.lampTime)
 	log.Printf("[T:%d] %s", s.lampTime, leaveMsg) //log that client has left server.
@@ -89,6 +94,8 @@ func (s *Server) removeClient(clientName string, cliTime int32) {
 
 // Helper to evaluate lamport time
 func (s *Server) increaseLamptime(receivedTime int32) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	if s.lampTime > receivedTime {
 		s.lampTime++
 		fmt.Printf("DEBUG: increased lamptime \n")
