@@ -121,13 +121,8 @@ func (s *Server) Chat(server pb.ChittyChat_ChatServer) error {
 	log.Printf("[T:%d] "+cliName+" Has joined the ChittyChat", s.lampTime) //log which client has joined, at some time.
 	s.increaseLamptime(s.lampTime)                                         //Increase time before broadcasting a client has joined.
 	log.Printf("[T:%d] Broadcasting: %s has joined the chat \n", s.lampTime, cliName)
-
-	for _, client := range s.clients {
-		joinMsg := fmt.Sprintf("Participant %s joined Chitty-Chat at server Lamport time %d", cliName, s.lampTime)
-		if err := client.Send(&pb.ChatResponse{Msg: joinMsg, Time: s.lampTime}); err != nil {
-			log.Printf("Broadcast error: %v", err)
-		}
-	}
+	joinMsg := fmt.Sprintf("Participant %s joined Chitty-Chat at server Lamport time %d", cliName, s.lampTime)
+	s.broadcast(joinMsg)
 
 	//LEAVE CLIENT
 	defer s.removeClient(cliName, cliTime) //remove client and increase time when removed.
