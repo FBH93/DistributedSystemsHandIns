@@ -22,15 +22,15 @@ Chat clients can join the server at any time.
 
 ## R6: A "Participant X  joined Chitty-Chat at Lamport time L" message is broadcast to all Participants when client X joins, including the new Participant
 
-TO DO
+The server will announce and broadcast when a user has joined.
 
 ## R7: Chat clients can drop out at any time
 
-Chat clients can drop out from the chat, by simply closing the cmd-client. 
+Chat clients can drop out from the chat, by simply closing the cmd-client. The client leaving will also receie a good-bye message in the log to confirm they have disconnected.
 
 ## R8: A "Participant X left Chitty-Chat at Lamport time L" message is broadcast to all remaining Participants when Participant X leaves
 
-TO DO
+The server will broadcast when a client has left the server. 
 
 # Technical Requirements
 
@@ -48,16 +48,19 @@ Each client joins as a separate process via a new command prompt.
 
 ## Log all service calls (Publish, Broadcast, ...) using the log package
 
-TO DO - TEST
+Both client and Server makes a log with a helpermethod SetLog()
+
+![SetLog() method](ChittyChat/Assets/SetLog().JPG)
 
 ## Demonstrate that the system can be started with at least 3 client nodes
 
-Insert pic
+See Chatlog example
+![3Clients](ChittyChat/Assets/Chatlogs.jpg)
 
 ## Demonstrate that a client node can join the system
 
-Insert Pic
+See Chatlog example
 
 ## Demonstrate that a client node can leave the system
 
-Insert Pic
+See Chatlog example

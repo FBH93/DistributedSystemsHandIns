@@ -47,6 +47,7 @@ var port = flag.String("port", "5400", "Server Port")
 func main() {
 	flag.Parse() //Parse the flags from command line to server.
 
+	//COMMENT OUT THESE TWO LINES TO REMOVE LOGGING TO TXT
 	logfile := setLog()   //print log to a log.txt file instead of the console
 	defer logfile.Close() //Close the log file when server closes.
 
