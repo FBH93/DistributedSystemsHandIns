@@ -12,7 +12,7 @@ To run the solution for the ChittyChat system use the command
 
 `go run client/client.go -name <enter a client name here> -port <enter a port here>`
 
-Alternatively, build the solution for easy run.
+Alternatively, build the solution:
 
 `go build client/client.go` then run the .exe file with flags in command line `client.exe -name <name> -port <port>`
 `go build server/server.go` then run the .exe file with flags in command line `server.exe -ServerName <name> -port <port>`
@@ -20,6 +20,8 @@ Alternatively, build the solution for easy run.
 in separate command prompts in the HandIn3-folder. Multiple clients may be started.
 
 When running the files, the optional flags `-name` and `-port` may be left out to revert to default values. If the port on the server is changed, the clients must use the same port.
+
+> We have not taken into account multiple clients with the same name. This may create issues with with the log files, as they may overwrite each other's logs.
 
 ## System Architecture
 
@@ -77,7 +79,6 @@ Below is a diagram illustrating an example sequence of events in ChittyChat.
 The local lamport time is shown in brackets next to discrete events, and the lamport time in a message is shown in brackets next to the message type.
 
 <img src="ChittyChat/Assets/Sequence Diagram.svg">
-[!Sequence Diagram](ChittyChat/Assets/Sequence Diagram.svg)
 
 ## Git Repository
 
@@ -87,7 +88,7 @@ The source code for HandIn3 can be found at <https://github.com/FBH93/Distribute
 
 System logs can be found in the subfolder Assets, but for convenience we have compieled an image with the logs.
 
-[!System logs](ChittyChat/Assets/Chatlogs.jpg)
+![System logs](ChittyChat/Assets/Chatlogs.jpg)
 
 The interesting scenario is as follows:
 Start server

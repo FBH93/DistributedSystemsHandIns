@@ -50,19 +50,17 @@ Each client joins as a separate process via a new command prompt.
 
 Both client and Server makes a log with a helpermethod SetLog()
 
-[!SetLog() method](ChittyChat/Assets/SetLog().JPG)
+![SetLog() method](ChittyChat/Assets/SetLog().JPG)
 
 ## Demonstrate that the system can be started with at least 3 client nodes
 
 See Chatlog example
-[!3Clients](ChittyChat/Assets/Chatlogs.jpg)
+![3Clients](ChittyChat/Assets/Chatlogs.jpg)
 
 ## Demonstrate that a client node can join the system
 
 See Chatlog example
-[!join](ChittyChat/Assets/Chatlogs.jpg)
 
 ## Demonstrate that a client node can leave the system
 
 See Chatlog example
-[!leave](ChittyChat/Assets/Chatlogs.jpg)
