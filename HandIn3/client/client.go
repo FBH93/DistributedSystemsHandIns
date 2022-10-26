@@ -27,7 +27,7 @@ var serverConn *grpc.ClientConn
 func main() {
 	flag.Parse()
 
-	fmt.Println("Attempting to connect to server")
+	log.Printf("[T:%d] Attempting to connect to server", lampTime)
 	connectToServer()
 
 	// Get stream from server
@@ -37,21 +37,24 @@ func main() {
 		log.Printf("Could not connect to server. Is it running?")
 		return
 	}
-
 	go receive(stream)
 
 	// Ensure first message to server initializes the welcome message
 	if err := stream.Send(&pb.ChatRequest{Msg: "", ClientName: *clientName}); err != nil {
 		log.Fatal(err)
 	}
+
 	parseInput(stream)
 }
 
 func increaseLamptime(receivedTime int32) {
+	fmt.Printf("DEBUG: Evaluating client time %d vs received time %d \n", lampTime, receivedTime)
 	if lampTime > receivedTime {
 		lampTime++
+		fmt.Printf("DEBUG: Increased lamptime by 1 to %d", lampTime)
 	} else {
 		lampTime = receivedTime + 1
+		fmt.Printf("DEBUG: Increased lamptime to %d based on received time %d + 1 \n", lampTime, receivedTime)
 	}
 }
 
@@ -63,7 +66,7 @@ func receive(stream pb.ChittyChat_ChatClient) {
 			log.Fatal(err)
 		}
 		increaseLamptime(resp.Time) //before printing received msg, increase time
-		log.Printf("[T:%d]Received: %s", lampTime, resp.Msg)
+		log.Printf("[T:%d] %s", lampTime, resp.Msg)
 	}
 }
 
@@ -95,7 +98,7 @@ func parseInput(stream pb.ChittyChat_ChatClient) {
 	fmt.Println("Post a message to ChittyChat:")
 
 	for {
-		fmt.Printf("-> ")
+		//fmt.Printf("-> ")
 
 		// Read input into var input and any errors into err
 		input, err := reader.ReadString('\n')
@@ -105,16 +108,16 @@ func parseInput(stream pb.ChittyChat_ChatClient) {
 		// Trim input
 		input = strings.TrimSpace(input)
 
+		//Test if server is ready to receive stream
 		if serverConn.GetState().String() != "READY" {
-			//TODO: Try to substitute with log.Fatalf()
-			log.Printf("Client %s: Something was wrong with the connection to the server :(", *clientName)
-			continue
+			log.Fatalf("Client %s: Something was wrong with the connection to the server :(", *clientName)
 		}
 
-		//TODO: Event logic goes here:
 		prefix := *clientName + ": "
+		message := prefix + input
 		increaseLamptime(lampTime) //Before sending message to server, increase lamptime
-		if err := stream.Send(&pb.ChatRequest{Msg: prefix + input, ClientName: *clientName, Time: lampTime}); err != nil {
+		log.Printf("[T:%d] sent message '%s'", lampTime, message)
+		if err := stream.Send(&pb.ChatRequest{Msg: message, ClientName: *clientName, Time: lampTime}); err != nil {
 			log.Fatal(err)
 		}
 	}
