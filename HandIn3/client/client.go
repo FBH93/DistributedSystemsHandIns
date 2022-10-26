@@ -24,10 +24,27 @@ var lampTime int32 = 0 //client starts with lamport time 0
 var server pb.ChittyChatClient
 var serverConn *grpc.ClientConn
 
+// sets the logger to use a log.txt file instead of the console
+func setLog() *os.File {
+	// Clears the log.txt file when a new server is started
+	if err := os.Truncate(*clientName+"Log.txt", 0); err != nil {
+		log.Printf("Failed to truncate: %v", err)
+	}
+
+	// This connects to the log file/changes the output of the log informaiton to the log.txt file.
+	f, err := os.OpenFile(*clientName+"log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	log.SetOutput(f)
+	return f
+}
+
 func main() {
+	flag.Parse()
+
 	logfile := setLog() //print log to a log.txt file instead of the console
 	defer logfile.Close()
-	flag.Parse()
 
 	log.Printf("[T:%d] Attempting to connect to server", lampTime)
 	connectToServer()
@@ -82,7 +99,7 @@ func connectToServer() {
 	defer cancel()
 
 	// Dial the server to get a connection:
-	log.Printf("Client %s: Attempts to dial on port %s\n", *clientName, *serverPort)
+	fmt.Printf("INFO: %s: Attempts to dial on port %s\n", *clientName, *serverPort)
 	conn, err := grpc.DialContext(timeContext, fmt.Sprintf(":%s", *serverPort), opts...)
 	if err != nil {
 		log.Printf("Failed to dial: %v\n", err)
@@ -97,7 +114,7 @@ func connectToServer() {
 
 func parseInput(stream pb.ChittyChat_ChatClient) {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Post a message to ChittyChat:")
+	fmt.Println("INFO: --- You can now post a message to ChittyChat ---")
 
 	for {
 		//fmt.Printf("-> ")
@@ -105,7 +122,8 @@ func parseInput(stream pb.ChittyChat_ChatClient) {
 		// Read input into var input and any errors into err
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatalf("Input gave an error: %v", err)
+			increaseLamptime(lampTime)                                                //Increase time when connection to server is lost/disconnected.
+			log.Fatalf("[T:%d] Connection to server interrupted. Goodbye!", lampTime) //Client goodbye message.
 		}
 		// Trim input
 		input = strings.TrimSpace(input)
@@ -123,20 +141,4 @@ func parseInput(stream pb.ChittyChat_ChatClient) {
 			log.Fatal(err)
 		}
 	}
-}
-
-// sets the logger to use a log.txt file instead of the console
-func setLog() *os.File {
-	// Clears the log.txt file when a new server is started
-	if err := os.Truncate("log.txt", 0); err != nil {
-		log.Printf("Failed to truncate: %v", err)
-	}
-
-	// This connects to the log file/changes the output of the log informaiton to the log.txt file.
-	f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	log.SetOutput(f)
-	return f
 }

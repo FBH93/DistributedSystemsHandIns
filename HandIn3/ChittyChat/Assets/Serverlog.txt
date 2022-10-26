@@ -1,0 +1,23 @@
+2022/10/26 12:56:35 [T:0] Server default server: Listening on port 5400
+2022/10/26 12:56:42 [T:1] Client1 Has joined the ChittyChat
+2022/10/26 12:56:42 [T:2] Broadcasting: Participant Client1 joined Chitty-Chat at server Lamport time 1
+2022/10/26 12:56:44 [T:3] Client2 Has joined the ChittyChat
+2022/10/26 12:56:44 [T:4] Broadcasting: Participant Client2 joined Chitty-Chat at server Lamport time 3
+2022/10/26 12:57:00 [T:7] Server received message Client1: Hello Client 2, I am Client 1 and I welcome you to ChittyChat from Client1
+2022/10/26 12:57:00 [T:8] Broadcasting: Client1: Hello Client 2, I am Client 1 and I welcome you to ChittyChat
+2022/10/26 12:57:05 [T:9] Client3 Has joined the ChittyChat
+2022/10/26 12:57:05 [T:10] Broadcasting: Participant Client3 joined Chitty-Chat at server Lamport time 9
+2022/10/26 12:57:23 [T:13] Server received message Client2: I am Client 2 and I will now leave from Client2
+2022/10/26 12:57:23 [T:14] Broadcasting: Client2: I am Client 2 and I will now leave
+2022/10/26 12:57:23 [T:15] Participant Client2 left the server at server Lamport time 15 
+2022/10/26 12:57:23 [T:16] Broadcasting: Participant Client2 left the server at server Lamport time 15 
+2022/10/26 12:57:38 [T:19] Server received message Client3: I think client 1 should leave the server from Client3
+2022/10/26 12:57:38 [T:20] Broadcasting: Client3: I think client 1 should leave the server
+2022/10/26 12:57:48 [T:23] Server received message Client1: Ok from Client1
+2022/10/26 12:57:48 [T:24] Broadcasting: Client1: Ok
+2022/10/26 12:57:50 [T:25] Participant Client1 left the server at server Lamport time 25 
+2022/10/26 12:57:50 [T:26] Broadcasting: Participant Client1 left the server at server Lamport time 25 
+2022/10/26 12:58:00 [T:29] Server received message Client3: I will now also leave from Client3
+2022/10/26 12:58:00 [T:30] Broadcasting: Client3: I will now also leave
+2022/10/26 12:58:01 [T:31] Participant Client3 left the server at server Lamport time 31 
+2022/10/26 12:58:01 [T:32] Broadcasting: Participant Client3 left the server at server Lamport time 31 

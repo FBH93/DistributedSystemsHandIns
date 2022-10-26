@@ -1,0 +1,13 @@
+2022/10/26 12:56:42 [T:0] Attempting to connect to server
+2022/10/26 12:56:42 [T:1] The connection is: READY
+2022/10/26 12:56:42 [T:3] Participant Client1 joined Chitty-Chat at server Lamport time 1
+2022/10/26 12:56:44 [T:5] Participant Client2 joined Chitty-Chat at server Lamport time 3
+2022/10/26 12:57:00 [T:6] sent message 'Client1: Hello Client 2, I am Client 1 and I welcome you to ChittyChat'
+2022/10/26 12:57:00 [T:9] Client1: Hello Client 2, I am Client 1 and I welcome you to ChittyChat
+2022/10/26 12:57:05 [T:11] Participant Client3 joined Chitty-Chat at server Lamport time 9
+2022/10/26 12:57:23 [T:15] Client2: I am Client 2 and I will now leave
+2022/10/26 12:57:23 [T:17] Participant Client2 left the server at server Lamport time 15 
+2022/10/26 12:57:38 [T:21] Client3: I think client 1 should leave the server
+2022/10/26 12:57:48 [T:22] sent message 'Client1: Ok'
+2022/10/26 12:57:48 [T:25] Client1: Ok
+2022/10/26 12:57:50 [T:26] Connection to server interrupted. Goodbye!
