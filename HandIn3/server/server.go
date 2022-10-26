@@ -89,12 +89,13 @@ func (s *Server) removeClient(clientName string, cliTime int32) {
 
 // Helper to evaluate lamport time
 func (s *Server) increaseLamptime(receivedTime int32) {
+	fmt.Printf("DEBUG: Evaluating client time %d vs received time %d \n", s.lampTime, receivedTime)
 	if s.lampTime > receivedTime {
 		s.lampTime++
-		fmt.Printf("DEBUG: increased lamptime \n")
+		fmt.Printf("DEBUG: Increased lamptime by 1 to %d", s.lampTime)
 	} else {
 		s.lampTime = receivedTime + 1
-		fmt.Printf("DEBUG: Increased lamptime based on higher value received time \n")
+		fmt.Printf("DEBUG: Increased lamptime to %d based on received time %d + 1 \n", s.lampTime, receivedTime)
 	}
 }
 
