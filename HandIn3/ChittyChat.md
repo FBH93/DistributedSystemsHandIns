@@ -53,7 +53,11 @@ Describe how you have implemented the calculation of the Lamport timestamps
 
 ## Diagram
 
-Provide a diagram, that traces a sequence of RPC calls together with the Lamport timestamps, that corresponds to a chosen sequence of interactions: Client X joins, Client X Publishes, ..., Client X leaves. Include documentation (system logs) in your appendix.
+Below is a diagram illustrating an example sequence of events in ChittyChat. 
+
+The local lamport time is shown in brackets next to discrete events, and the lamport time in a message is shown in brackets next to the message type. 
+
+<img src="Sequence Diagram.svg">
 
 ## Git Repository
 
