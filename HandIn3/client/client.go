@@ -24,22 +24,6 @@ var lampTime int32 = 0 //client starts with lamport time 0
 var server pb.ChittyChatClient
 var serverConn *grpc.ClientConn
 
-// sets the logger to use a log.txt file instead of the console
-func setLog() *os.File {
-	// Clears the log.txt file when a new server is started
-	if err := os.Truncate(*clientName+"Log.txt", 0); err != nil {
-		log.Printf("Failed to truncate: %v", err)
-	}
-
-	// This connects to the log file/changes the output of the log informaiton to the log.txt file.
-	f, err := os.OpenFile(*clientName+"log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	log.SetOutput(f)
-	return f
-}
-
 func main() {
 	flag.Parse()
 
@@ -67,6 +51,7 @@ func main() {
 	parseInput(stream)
 }
 
+// increaseLamptime evaluates and updates lampTime.
 func increaseLamptime(receivedTime int32) {
 	fmt.Printf("DEBUG: Evaluating client time %d vs received time %d \n", lampTime, receivedTime)
 	if lampTime > receivedTime {
@@ -78,7 +63,7 @@ func increaseLamptime(receivedTime int32) {
 	}
 }
 
-// Receive and print stream from server
+// receive and log stream from server
 func receive(stream pb.ChittyChat_ChatClient) {
 	for {
 		resp, err := stream.Recv()
@@ -90,6 +75,8 @@ func receive(stream pb.ChittyChat_ChatClient) {
 	}
 }
 
+// connectToServer with specified dial options.
+// increase lampTime when connection is successful
 func connectToServer() {
 	// Dial options:
 	var opts []grpc.DialOption
@@ -113,6 +100,7 @@ func connectToServer() {
 	log.Printf("[T:%d] The connection is: %s\n", lampTime, conn.GetState().String())
 }
 
+// parseInput from client and send to server stream
 func parseInput(stream pb.ChittyChat_ChatClient) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("INFO: --- You can now post a message to ChittyChat ---")
@@ -142,4 +130,20 @@ func parseInput(stream pb.ChittyChat_ChatClient) {
 			log.Fatal(err)
 		}
 	}
+}
+
+// setLog sets the logger to use a log.txt file instead of the console
+func setLog() *os.File {
+	// Clears the log.txt file when a new server is started
+	if err := os.Truncate(*clientName+"Log.txt", 0); err != nil {
+		log.Printf("Failed to truncate: %v", err)
+	}
+
+	// This connects to the log file/changes the output of the log informaiton to the log.txt file.
+	f, err := os.OpenFile(*clientName+"log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	log.SetOutput(f)
+	return f
 }
