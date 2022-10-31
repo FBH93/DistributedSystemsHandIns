@@ -1,0 +1,16 @@
+syntax = "proto3";
+package coordination;
+
+option go_package = "github.com/FBH93/DistributedSystemsHandIns/ExercisesWeek7/coordination";
+
+service Coordination {
+  rpc Something (X) returns (Y) {};
+}
+
+message X {
+
+}
+
+message Y {
+
+}
