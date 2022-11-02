@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/FBH93/DistributedSystemsHandIns/ExercisesWeek7"
+	pb "github.com/FBH93/DistributedSystemsHandIns/ExercisesWeek7/Client"
 	"google.golang.org/grpc"
 )
 
@@ -55,20 +55,20 @@ func launchClient() {
 
 	// Optional options for grpc server:
 	var opts []grpc.ServerOption
-
 	// Create pb server (not yet ready to accept requests yet)
-	grpcClient := grpc.NewCoordinationClient(opts...)
+	grpcClient := pb.NewCoordinationClient(opts...)
 
 	// Make a server instance using the name and port from the flags
-	server := &Client{
+	client := &Client{
 		name:     *clientID,
 		port:     *port,
 		clients:  make(map[string]Client),
 		lampTime: 0,
 	}
 
-	pb.
-		log.Printf("[T:%d] Client %s: Listening on port %s\n", client.lampTime, *clientID, *port)
+	pb.RegisterCoordinationServer(grpcClient, client)
+
+	log.Printf("[T:%d] Client %s: Listening on port %s\n", client.lampTime, *clientID, *port)
 	if err := grpcClient.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve %v", err)
 	}
