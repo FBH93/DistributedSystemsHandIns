@@ -18,7 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CoordinationClient interface {
-	Something(ctx context.Context, in *X, opts ...grpc.CallOption) (*Y, error)
+	Request(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Rep, error)
+	SetLeader(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Rep, error)
 }
 
 type coordinationClient struct {
@@ -29,9 +30,18 @@ func NewCoordinationClient(cc grpc.ClientConnInterface) CoordinationClient {
 	return &coordinationClient{cc}
 }
 
-func (c *coordinationClient) Something(ctx context.Context, in *X, opts ...grpc.CallOption) (*Y, error) {
-	out := new(Y)
-	err := c.cc.Invoke(ctx, "/coordination.Coordination/Something", in, out, opts...)
+func (c *coordinationClient) Request(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Rep, error) {
+	out := new(Rep)
+	err := c.cc.Invoke(ctx, "/coordination.Coordination/request", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *coordinationClient) SetLeader(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Rep, error) {
+	out := new(Rep)
+	err := c.cc.Invoke(ctx, "/coordination.Coordination/setLeader", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +52,8 @@ func (c *coordinationClient) Something(ctx context.Context, in *X, opts ...grpc.
 // All implementations must embed UnimplementedCoordinationServer
 // for forward compatibility
 type CoordinationServer interface {
-	Something(context.Context, *X) (*Y, error)
+	Request(context.Context, *Req) (*Rep, error)
+	SetLeader(context.Context, *Req) (*Rep, error)
 	mustEmbedUnimplementedCoordinationServer()
 }
 
@@ -50,8 +61,11 @@ type CoordinationServer interface {
 type UnimplementedCoordinationServer struct {
 }
 
-func (UnimplementedCoordinationServer) Something(context.Context, *X) (*Y, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Something not implemented")
+func (UnimplementedCoordinationServer) Request(context.Context, *Req) (*Rep, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Request not implemented")
+}
+func (UnimplementedCoordinationServer) SetLeader(context.Context, *Req) (*Rep, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetLeader not implemented")
 }
 func (UnimplementedCoordinationServer) mustEmbedUnimplementedCoordinationServer() {}
 
@@ -66,20 +80,38 @@ func RegisterCoordinationServer(s grpc.ServiceRegistrar, srv CoordinationServer)
 	s.RegisterService(&Coordination_ServiceDesc, srv)
 }
 
-func _Coordination_Something_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(X)
+func _Coordination_Request_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Req)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CoordinationServer).Something(ctx, in)
+		return srv.(CoordinationServer).Request(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/coordination.Coordination/Something",
+		FullMethod: "/coordination.Coordination/request",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoordinationServer).Something(ctx, req.(*X))
+		return srv.(CoordinationServer).Request(ctx, req.(*Req))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Coordination_SetLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Req)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoordinationServer).SetLeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/coordination.Coordination/setLeader",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoordinationServer).SetLeader(ctx, req.(*Req))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -92,8 +124,12 @@ var Coordination_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*CoordinationServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Something",
-			Handler:    _Coordination_Something_Handler,
+			MethodName: "request",
+			Handler:    _Coordination_Request_Handler,
+		},
+		{
+			MethodName: "setLeader",
+			Handler:    _Coordination_SetLeader_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
