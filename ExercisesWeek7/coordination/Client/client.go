@@ -9,15 +9,15 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/FBH93/DistributedSystemsHandIns/ExercisesWeek7/Client"
+	gRPC "github.com/FBH93/DistributedSystemsHandIns/ExercisesWeek7/Coordination"
 	"google.golang.org/grpc"
 )
 
 type Client struct {
-	pb.UnimplementedCoordinationClient
+	gRPC.UnimplementedCoordinationServer
 	name          string
 	port          string
-	clients       map[string]pb.client // Set of clients and streams
+	clients       map[string]gRPC.CoordinationClient // Set of clients and streams
 	lampTime      int32
 	mutexLampTime sync.Mutex
 	mutexClient   sync.Mutex
@@ -56,17 +56,17 @@ func launchClient() {
 	// Optional options for grpc server:
 	var opts []grpc.ServerOption
 	// Create pb server (not yet ready to accept requests yet)
-	grpcClient := pb.NewCoordinationClient(opts...)
+	grpcClient := gRPC.NewCoordinationClient(opts...)
 
 	// Make a server instance using the name and port from the flags
 	client := &Client{
 		name:     *clientID,
 		port:     *port,
-		clients:  make(map[string]Client),
+		clients:  make(map[string]gRPC.CoordinationClient),
 		lampTime: 0,
 	}
 
-	pb.RegisterCoordinationServer(grpcClient, client)
+	gRPC.RegisterCoordinationServer(grpcClient, client)
 
 	log.Printf("[T:%d] Client %s: Listening on port %s\n", client.lampTime, *clientID, *port)
 	if err := grpcClient.Serve(lis); err != nil {
