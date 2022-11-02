@@ -6,6 +6,7 @@ package coordination;
 option go_package = "github.com/FBH93/DistributedSystemsHandIns/ExercisesWeek7/coordination";
 
 service Coordination {
+  rpc request (reqSetLeader) returns (replySetLeader) {};
   rpc setLeader (reqSetLeader) returns (replySetLeader) {};
   //rpc somethingElse () returns (){};
 }
