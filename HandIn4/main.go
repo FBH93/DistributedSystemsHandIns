@@ -35,6 +35,7 @@ func main() {
 	}
 
 	// Create listener tcp on port ownPort
+	log.Printf("Starting peer on port %v", ownPort)
 	list, err := net.Listen("tcp", fmt.Sprintf(":%v", ownPort))
 	if err != nil {
 		log.Fatalf("Failed to listen on port: %v", err)
@@ -59,8 +60,8 @@ func main() {
 		}
 
 		var conn *grpc.ClientConn
-		fmt.Printf("Trying to dial: %v\n", port)
-		// unsuccessful dialing attempts become blocking by grpc.WithBlock(), as to give us time to launch other nodes
+		log.Printf("Trying to dial: %v\n", port)
+		// unsuccessful dialing attempts become blocking by grpc.WithBlock(), as to give us time to launch other peers
 		conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock())
 		if err != nil {
 			log.Fatalf("Could not connect: %s", err)
@@ -71,10 +72,10 @@ func main() {
 		p.clients[port] = c
 	}
 
-	//Send a ping to all when anything is input in the console.
+	// Ask all nodes for permission to enter critical section, and execute critical section
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		p.sendPingToAll()
+		p.enterCritical()
 	}
 }
 
@@ -89,12 +90,21 @@ type peer struct {
 
 // Function to receive and respond to a ping from a peer.
 func (p *peer) Ping(ctx context.Context, req *ping.Request) (*ping.Reply, error) {
-	rep := &ping.Reply{Id: p.id}
+	log.Printf("Recieved request from %v to enter critical section", req.Id)
+	retryAttempts := 0 //To handle deadlocks, we count how many times peer has tried to check the state
 
-	for true {
-		if p.held == false && p.wanted == false { // respond when lock is not wanted / held (i.e. the peer is busy entering / in the critical section):
+	for { // busy wait / infinite loop
+		if !p.held && !p.wanted { // respond iff lock is not wanted nor held (i.e. the peer is busy entering / in the critical section):
+			log.Printf("Sending go-ahead to node %v's request to enter critical section\n", req.Id)
+			rep := &ping.Reply{Id: p.id, Permission: true}
 			return rep, nil
-		} else { // Waiting position, keep looping until lock is not wanted or held.
+		} else { // Waiting position, keep looping until lock is not wanted nor held.
+			if retryAttempts > 10 {
+				rep := &ping.Reply{Id: p.id, Permission: false}
+				return rep, nil //Return reply with permission denied if 10 tries has passed with no progress to prevent deadlocks
+			}
+			retryAttempts++
+			time.Sleep(time.Second * 1) //Wait 1 second before trying again.
 			continue
 		}
 	}
@@ -106,28 +116,45 @@ func (p *peer) Ping(ctx context.Context, req *ping.Request) (*ping.Reply, error)
 }
 
 // Function to send ping to all peers by iterating over a map of clients.
-func (p *peer) sendPingToAll() {
+// Returns true iff all other peers reponds positively
+// Returns false if any requests to peers times out (indicating dead peer or deadlock)
+func (p *peer) sendPingToAll() bool {
 	request := &ping.Request{Id: p.id}
 	for id, client := range p.clients {
 		reply, err := client.Ping(p.ctx, request)
 		if err != nil {
-			fmt.Println("something went wrong")
+			fmt.Println("something went wrong\n")
+			return false
 		}
-		fmt.Printf("Got reply from id %v: %v\n", id, reply.Id)
+		if !reply.Permission {
+			return false
+		}
+		log.Printf("Got positive reply from id %v: %v\n", id, reply.Id)
 	}
+	return true
 }
 
-func (p *peer) requestLock() {
-	p.wanted = true   //prevents peer from responding while lock is wanted.
-	p.sendPingToAll() //Wait for response from all peers before proceeding.
-	p.held = true
-	p.wanted = false
-	p.doCritical()
-	p.held = false
+// Peer tries to enter critical section
+func (p *peer) enterCritical() {
+	p.wanted = true //prevents peer from responding while lock is wanted.
+	log.Printf("%v wants to enter the critical section \n", p.id)
+	if p.sendPingToAll() { //Wait for response from all peers before proceeding. Proceed iff the method returns true (i.e. all other peers responded)
+		p.held = true
+		p.wanted = false
+		log.Printf("%v has acquired the lock for the critical section", p.id)
+		p.doCritical() //Enter critical section
+		p.held = false
+		log.Printf("%v has released the lock for the critical section", p.id)
+	} else {
+		p.wanted = false
+		log.Printf("%v did not get a response from all clients. Will request to enter critical section again shortly.", p.id)
+		time.Sleep(time.Second * (time.Duration(p.id) % 5000)) //Wait a dynamic amount of time, to avoid entering deadlock again. To avoid 2 peers retrying after the same delay and deadlocking again.
+		p.enterCritical()                                      //Try to enter critical again.
+	}
 }
 
 // function to emulate a critical section, in our case simply logging an event
 func (p *peer) doCritical() {
-	time.Sleep(1000) //Simulate the time it takes to do something critical
+	time.Sleep(time.Second * 4) //Simulate the time it takes to do something critical
 	log.Printf("%v ran critical section - Yay \n", p.id)
 }
