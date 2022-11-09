@@ -13,5 +13,5 @@ message Request {
 }
 
 message Reply {
-    int32 amount = 1;
+    int32 id = 1;
 }

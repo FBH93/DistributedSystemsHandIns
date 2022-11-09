@@ -1,6 +1,21 @@
-System Requirements:
+# Hand In 4
+
+
+## System Functionality
+### Handling entering the critical section
+A peer may ping other peers freely at any time. A ping is a request to enter the critical section, and when a response has been received from all other peers, it may enter the critical section. 
+
+When a peer wants to enter the critical section, it will first set its own state to `Wanted = true`, to represent it wants the acquire the lock.
+While the state is `wanted = true` any pings received by the peer, will be put in a waiting position (busy wait), i.e. not responded to immedietly. 
+After setting the state `wanted = true`, the peer will then ping all other connected clients. Once responses have been received from all, the state will change to `wanted = false` and `held = true` to represent that the peer is now holding the lock to the critical section (and thus no longer wanting the lock). 
+The peer will then do the critical section (A sleep and a print statement to represent the time taken to perform some action, such as a database query), and once complete it will return to state `held = false`, thus letting the peer respond to all pings that it received while it was trying to enter the critical section.
+
+
+## System Requirements:
 
 R1: Implement a system with a set of peer nodes, and a Critical Section, that represents a sensitive system operation. Any node can at any time decide it wants access to the Critical Section. Critical section in this exercise is emulated, for example by a print statement, or writing to a shared file on the network.
+
+
 
 R2: Safety: Only one node at the same time is allowed to enter the Critical Section 
 
