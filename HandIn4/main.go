@@ -70,6 +70,7 @@ func main() {
 		// add dialed node to clients map
 		c := ping.NewPingClient(conn)
 		p.clients[port] = c
+		log.Printf("Successfully dialed and saved peer id %d", port)
 	}
 
 	// Ask all nodes for permission to enter critical section, and execute critical section
@@ -129,7 +130,7 @@ func (p *peer) sendPingToAll() bool {
 		if !reply.Permission {
 			return false
 		}
-		log.Printf("Got positive reply from id %v: %v\n", id, reply.Id)
+		log.Printf("Got 'go-ahead' from peer %v\n", id)
 	}
 	return true
 }
@@ -147,7 +148,7 @@ func (p *peer) enterCritical() {
 		log.Printf("%v has released the lock for the critical section", p.id)
 	} else {
 		p.wanted = false
-		log.Printf("%v did not get a response from all clients. Will request to enter critical section again shortly.", p.id)
+		log.Printf("%v did not get a 'go-ahead' from all clients within expected time frame. Will request to enter critical section again shortly.", p.id)
 		time.Sleep(time.Second * (time.Duration(p.id) % 5000)) //Wait a dynamic amount of time, to avoid entering deadlock again. To avoid 2 peers retrying after the same delay and deadlocking again.
 		p.enterCritical()                                      //Try to enter critical again.
 	}
