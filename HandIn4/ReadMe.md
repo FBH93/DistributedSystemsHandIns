@@ -66,6 +66,20 @@ If $p1$ is in the critical section, it will eventually finish, and respond to ot
 
 This way we ensure that all who request to enter the critical section will *eventually* succeed.
 
-# Example
+# Examples
 
-This section will demonstrate the functioning of the program by providing the logs of an instance.   
+This section will demonstrate the functioning of the program by providing the logs of an instance.
+
+## Ex1: Enter critical section and safety
+Example 1 demonstrates peer 5000 requesting to enter the critical section and got go-ahead from peer 5001 and 5002.
+This is illustrated by the yellow lines.
+
+The blue lines demonstrate safety since peer 5001 requests the critical section meanwhile peer 5000 has the lock.
+
+Peer 5001 has to wait 4 seconds for peer 5000 to release the lock and send its go-ahead.
+
+![](assets/pic1.png "ex1")
+
+## Ex2: Preventing deadlock
+In example 2, all three peers request to enter the critical section almost at the same time.
+
