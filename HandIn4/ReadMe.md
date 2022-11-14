@@ -6,7 +6,9 @@
 run the peers by opening cmd in the HandIn4 folder and using the command:
 
 `go run . 0` for client 0 on port 5000
+
 `go run . 1` for client 1 on port 5001
+
 `go run . 2` for client 2 on port 5002
 
 When the client is running, entering anything in a peer's command line (even a blank line) will cause the peer to try entering the critical section.
