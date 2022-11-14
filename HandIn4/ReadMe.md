@@ -81,5 +81,10 @@ Peer 5001 has to wait 4 seconds for peer 5000 to release the lock and send its g
 ![](assets/pic1.png "ex1")
 
 ## Ex2: Preventing deadlock
-In example 2, all three peers request to enter the critical section almost at the same time.
+In example 2, peer 5001 and 5002 request to enter the critical section at almost the same time while peer 5000
+is inside the critical section.
 
+Peer 5002 detects that 5000 and 5001 end up in a deadlock. Peer 5002 then waits for a short time and then retry
+to enter the critical section, thus proving liveliness.
+
+![](assets/Pic2.png "ex2")
