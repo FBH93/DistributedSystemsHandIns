@@ -2,6 +2,8 @@
 
 ## Instructions
 
+Clone repository from: https://github.com/FBH93/DistributedSystemsHandIns
+
 Run the peers by opening three separate command prompts in the `HandIn4` folder and running each of these in one of them:
 
 `go run . 0` for client 0 on port 5000
