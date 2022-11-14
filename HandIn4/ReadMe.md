@@ -30,7 +30,7 @@ So long as either `wanted` or `held` for $p1$ is true, $p1$ will not respond pos
 
 ## Establishing contact between peers
 
-The system is hardcoded to consist of three peers (however, this number trivial to change in line 53 of `main.go`). 
+The system is hardcoded to consist of three peers (however, this number is trivial to change in line 53 of `main.go`). 
 
 Each peer runs on a separate port. For this reason, we can conveniently use the port as the unique ID for each peer in our `clients` map - a part of the peer struct. 
 
