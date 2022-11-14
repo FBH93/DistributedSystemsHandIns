@@ -2,8 +2,6 @@
 
 ## Instructions
 
-run the peers by opening a terminal in the HandIn4 folder and using the commands:
-
 Run the peers by opening three separate command prompts in the `HandIn4` folder and running each of these in one of them:
 
 `go run . 0` for client 0 on port 5000
@@ -30,7 +28,7 @@ So long as either `wanted` or `held` for $p1$ is true, $p1$ will not respond pos
 
 ## Establishing contact between peers
 
-The system is hardcoded to consist of three peers (this number trivial to change in line 53 of `main.go`). 
+The system is hardcoded to consist of three peers (however, this number trivial to change in line 53 of `main.go`). 
 
 Each peer runs on a separate port. For this reason, we can conveniently use the port as the unique ID for each peer in our `clients` map - a part of the peer struct. 
 
@@ -46,11 +44,10 @@ A node may enter the critical section at any time, by entering anything in the c
 
 > R2: Safety: Only one node at the same time is allowed to enter the Critical Section
 
-When a peer wants to enter the critical section, it will first set its own state to `wanted = true`, to represent that it wants the acquire the lock.
-While the state is `wanted = true` any incoming requests received by the peer will be put in a waiting position (busy wait), i.e. not responded to immediately. 
+When a peer wants to enter the critical section, it will first set its own state to `wanted = true`, to represent that it wants the acquire the lock. While the state is `wanted = true` any incoming requests received by the peer will be put in a waiting position (busy wait), i.e. not responded to immediately. 
 
-After setting the state `wanted = true`, the peer will then ping all other connected clients. 
-If positive responses have been received from all, the state will change to `wanted = false` and `held = true` to represent that the peer is now holding the lock to the critical section (and thus no longer wanting the lock).
+After setting the state `wanted = true`, the peer will then try pinging all other connected clients. 
+If positive responses have been received from all, the state will change to `wanted = false` and `held = true` to represent that the peer is now holding the lock to the critical section (and thus no longer only wanting the lock).
 If a single negative response is received (for example due to time-out), the peer will retry entering the critical section after a short delay.
 The peer will then do the critical section (consisting, in this case, of a sleep and a print statement to represent the time taken to perform some action, such as a database query), and once complete it will return to state `held = false`, thus letting the peer respond to all pings that it received while it was trying to enter the critical section.
 
@@ -61,7 +58,7 @@ This ensures only 1 peer may enter the critical section at the same time.
 By nature of the loop in `ping()` method, we ensure that the peer $p1$ will eventually respond to all peers that pinged it - both in the event of a timeout or having successfully completed the critical section.
 If $p1$ is in the critical section, it will eventually finish, and respond to other peers. If $p1$ does unexpectedly not respond within 10 loops (≈10 seconds), we can assume $p1$ is in a deadlock waiting for another peer, and forces $p1$ to give up the attempt to enter the critical section and retry after a short wait, thus giving other peers a chance to enter the critical section in the meantime.
 
-This way we ensure that eventually all who request to enter the critical section will *eventually* succeed.
+This way we ensure that all who request to enter the critical section will *eventually* succeed.
 
 # Example
 
