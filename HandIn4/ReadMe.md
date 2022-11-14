@@ -2,6 +2,8 @@
 
 ## Instructions
 
+Clone repository from: https://github.com/FBH93/DistributedSystemsHandIns
+
 Run the peers by opening three separate command prompts in the `HandIn4` folder and running each of these in one of them:
 
 `go run . 0` for client 0 on port 5000
@@ -18,9 +20,13 @@ Note how the artificial delay of 4 seconds in each execution of the critical mak
 
 A peer may ping other peers freely at any time. A ping is a request to enter the critical section, and when a response has been received from all other peers, it may enter the critical section. 
 
+### The critical Section
+
+The Critical Section is a method doCritical() that sleeps 4 seconds to simulate some action (for example a database query) and then prints a message that the critical section has been run. While a peer is in the critical section, no other peer can perform this method. 
+
 ## Discussion of implementation & algorithm
 
-The implementation in our solution is loosely based on Ricart & Agrawala's algorithm - however, without the parts of the algorithm that guarantees ordering, as this is not the focus of this hand in. 
+The implementation in our solution is loosely based on Ricart & Agrawala's algorithm - however, without the parts of the algorithm that guarantees ordering by Lamport time, as this is not the focus of this hand in. 
 
 The state of a particular peer is stored in its corresponding struct, with the bool variables `wanted` and `held` indicating the state. Initially, both are false for all peers.  
 
@@ -62,6 +68,25 @@ If $p1$ is in the critical section, it will eventually finish, and respond to ot
 
 This way we ensure that all who request to enter the critical section will *eventually* succeed.
 
-# Example
+# Examples
 
-This section will demonstrate the functioning of the program by providing the logs of an instance.   
+This section will demonstrate the functioning of the program by providing the logs of an instance.
+
+## Ex1: Enter critical section and safety
+Example 1 demonstrates peer 5000 requesting to enter the critical section and got go-ahead from peer 5001 and 5002.
+This is illustrated by the yellow lines.
+
+The blue lines demonstrate safety since peer 5001 requests the critical section meanwhile peer 5000 has the lock.
+
+Peer 5001 has to wait 4 seconds for peer 5000 to release the lock and send its go-ahead.
+
+![](assets/pic1.png "ex1")
+
+## Ex2: Preventing deadlock
+In example 2, peer 5001 and 5002 request to enter the critical section at almost the same time while peer 5000
+is inside the critical section.
+
+Peer 5002 detects that 5000 and 5001 end up in a deadlock. Peer 5002 then waits for a short time and then retry
+to enter the critical section, thus proving liveliness.
+
+![](assets/Pic2.png "ex2")
