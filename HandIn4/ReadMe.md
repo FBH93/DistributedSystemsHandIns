@@ -18,9 +18,13 @@ Note how the artificial delay of 4 seconds in each execution of the critical mak
 
 A peer may ping other peers freely at any time. A ping is a request to enter the critical section, and when a response has been received from all other peers, it may enter the critical section. 
 
+### The critical Section
+
+The Critical Section is a method doCritical() that sleeps 4 seconds to simulate some action (for example a database query) and then prints a message that the critical section has been run. While a peer is in the critical section, no other peer can perform this method. 
+
 ## Discussion of implementation & algorithm
 
-The implementation in our solution is loosely based on Ricart & Agrawala's algorithm - however, without the parts of the algorithm that guarantees ordering, as this is not the focus of this hand in. 
+The implementation in our solution is loosely based on Ricart & Agrawala's algorithm - however, without the parts of the algorithm that guarantees ordering by Lamport time, as this is not the focus of this hand in. 
 
 The state of a particular peer is stored in its corresponding struct, with the bool variables `wanted` and `held` indicating the state. Initially, both are false for all peers.  
 
