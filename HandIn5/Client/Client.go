@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -15,9 +16,9 @@ import (
 
 // Same principle as in client. Flags allows for user specific arguments/values
 var clientsName = flag.String("name", "default", "Senders name")
-var serverPort = flag.String("server", "5400", "Tcp server")
+var serverPort = flag.String("server", "5000", "Auction server")
 
-var client auction.AuctionClient //the client
+var server auction.AuctionClient //the server
 var ServerConn *grpc.ClientConn  //the server connection
 
 func main() {
@@ -37,8 +38,11 @@ func main() {
 
 	//start the input
 	scanner := bufio.NewScanner(os.Stdin)
+	var val int32 = 1
 	for scanner.Scan() {
 		//Do something when pressing enter in console
+		val = val + 1
+		bid(val)
 	}
 }
 
@@ -61,12 +65,29 @@ func ConnectToServer() {
 
 	// makes a client from the server connection and saves the connection
 	// and prints rather or not the connection was is READY
-	client = auction.NewAuctionClient(conn)
+	server = auction.NewAuctionClient(conn)
 	ServerConn = conn
 	log.Println("the connection is: ", conn.GetState().String())
 }
 
-func bid(bid int32) {
+func bid(inputBid int32) {
+	request := &auction.Bid{
+		Bid: inputBid,
+	}
+	ack, err := server.Bid(context.Background(), request)
+	if err != nil {
+		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
+		log.Println(err)
+	}
+
+	// check if the server has handled the request correctly
+	if ack.Ack == true {
+		fmt.Printf("Success, the bid was received")
+	} else {
+		// something could be added here to handle the error
+		// but hopefully this will never be reached
+		fmt.Println("Oh no something went wrong :(")
+	}
 }
 
 // Function which returns a true boolean if the connection to the server is ready, and false if it's not.

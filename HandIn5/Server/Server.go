@@ -71,10 +71,22 @@ type server struct {
 	ctx     context.Context
 }
 
-func (s *server) bid(ctx context.Context) (auction.reply, error) {
+func (s *server) bid(ctx context.Context, bid auction.Bid) (*auction.Ack, error) {
 
+	response := &auction.Ack{Ack: true}
+	return response, nil
 }
 
 func (s *server) result() {
 
+}
+
+// sets the logger to use a log.txt file instead of the console
+func setLog() *os.File {
+	f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	log.SetOutput(f)
+	return f
 }
