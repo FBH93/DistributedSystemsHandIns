@@ -1,0 +1,33 @@
+syntax = "proto3";
+package grpc;
+
+option go_package = "github.com/FBH93/DistributedSystemsHandIns/HandIn5/grpc";
+
+service Auction {
+  rpc Bid (bid_request) returns (bid_reply) {};
+  rpc Result (result_request) returns (result_reply) {};
+}
+
+enum Outcome {
+  SUCCESS = 0;
+  FAIL = 1;
+  EXCEPTION = 2;
+}
+
+message bid_request {
+  int32 amount = 1;
+}
+
+message result_request {
+
+}
+
+message bid_reply {
+  Outcome outcome = 1;
+  optional string comment = 2;
+}
+
+message result_reply {
+  int32 highest_bid = 1;
+  string comment = 2;
+}
