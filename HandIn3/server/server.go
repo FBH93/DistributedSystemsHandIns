@@ -3,15 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	pb "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat"
+	"google.golang.org/grpc"
 	"io"
 	"log"
 	"net"
 	"os"
 	"sync"
-	"time"
-
-	pb "github.com/FBH93/DistributedSystemsHandIns/HandIn3/ChittyChat"
-	"google.golang.org/grpc"
 )
 
 type Server struct {
@@ -36,11 +34,8 @@ func main() {
 	defer logfile.Close() //Close the log file when server closes.
 
 	fmt.Println("--- Server is starting ---")
-	go launchServer()
+	launchServer()
 
-	for {
-		time.Sleep(time.Second * 5)
-	}
 }
 
 // launchServer sets up the grpc server with serverName to listen on the specified port.
