@@ -4,17 +4,8 @@ package Auction;
 option go_package = "github.com/FBH93/DistributedSystemsHandIns/HandIn5/grpc";
 
 service Auction {
-  rpc ping (Request) returns (Reply){};
   rpc bid (Bid) returns (Ack){};
   rpc result (ResultReq) returns (Outcome){};
-}
-
-message Request {
-
-}
-
-message Reply {
-
 }
 
 message Bid {
