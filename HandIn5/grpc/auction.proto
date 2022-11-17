@@ -10,8 +10,8 @@ service Auction {
 
 service Nodes {
   rpc ConnectNodes (stream ping) returns (stream ping) {}
-  rpc ElectLeader () returns () {}
-  rpc UpdateBid (bid_request) returns (ping) {}
+  // TODO: Implement Election
+  // rpc ElectLeader () returns () {}
 }
 
 message ping {

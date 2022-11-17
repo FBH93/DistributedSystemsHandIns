@@ -43,6 +43,13 @@ func main() {
 	}
 }
 
+// TODO Implement ConnectNodes
+func (s *Server) ConnectNodes(nodeStream auctionPB.Nodes_ConnectNodesServer) error {
+	//ping, err := nodeStream.Recv()
+
+	return nil
+}
+
 func launchServer() *Server {
 	parsePort, _ := strconv.ParseInt(*port, 10, 32)
 	ownPort := int32(parsePort)

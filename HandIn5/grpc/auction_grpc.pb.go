@@ -139,3 +139,121 @@ var Auction_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "grpc/auction.proto",
 }
+
+// NodesClient is the client API for Nodes service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type NodesClient interface {
+	ConnectNodes(ctx context.Context, opts ...grpc.CallOption) (Nodes_ConnectNodesClient, error)
+}
+
+type nodesClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewNodesClient(cc grpc.ClientConnInterface) NodesClient {
+	return &nodesClient{cc}
+}
+
+func (c *nodesClient) ConnectNodes(ctx context.Context, opts ...grpc.CallOption) (Nodes_ConnectNodesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Nodes_ServiceDesc.Streams[0], "/grpc.Nodes/ConnectNodes", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &nodesConnectNodesClient{stream}
+	return x, nil
+}
+
+type Nodes_ConnectNodesClient interface {
+	Send(*Ping) error
+	Recv() (*Ping, error)
+	grpc.ClientStream
+}
+
+type nodesConnectNodesClient struct {
+	grpc.ClientStream
+}
+
+func (x *nodesConnectNodesClient) Send(m *Ping) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *nodesConnectNodesClient) Recv() (*Ping, error) {
+	m := new(Ping)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// NodesServer is the server API for Nodes service.
+// All implementations must embed UnimplementedNodesServer
+// for forward compatibility
+type NodesServer interface {
+	ConnectNodes(Nodes_ConnectNodesServer) error
+	mustEmbedUnimplementedNodesServer()
+}
+
+// UnimplementedNodesServer must be embedded to have forward compatible implementations.
+type UnimplementedNodesServer struct {
+}
+
+func (UnimplementedNodesServer) ConnectNodes(Nodes_ConnectNodesServer) error {
+	return status.Errorf(codes.Unimplemented, "method ConnectNodes not implemented")
+}
+func (UnimplementedNodesServer) mustEmbedUnimplementedNodesServer() {}
+
+// UnsafeNodesServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to NodesServer will
+// result in compilation errors.
+type UnsafeNodesServer interface {
+	mustEmbedUnimplementedNodesServer()
+}
+
+func RegisterNodesServer(s grpc.ServiceRegistrar, srv NodesServer) {
+	s.RegisterService(&Nodes_ServiceDesc, srv)
+}
+
+func _Nodes_ConnectNodes_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(NodesServer).ConnectNodes(&nodesConnectNodesServer{stream})
+}
+
+type Nodes_ConnectNodesServer interface {
+	Send(*Ping) error
+	Recv() (*Ping, error)
+	grpc.ServerStream
+}
+
+type nodesConnectNodesServer struct {
+	grpc.ServerStream
+}
+
+func (x *nodesConnectNodesServer) Send(m *Ping) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *nodesConnectNodesServer) Recv() (*Ping, error) {
+	m := new(Ping)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// Nodes_ServiceDesc is the grpc.ServiceDesc for Nodes service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Nodes_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "grpc.Nodes",
+	HandlerType: (*NodesServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ConnectNodes",
+			Handler:       _Nodes_ConnectNodes_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "grpc/auction.proto",
+}
