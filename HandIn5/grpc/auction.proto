@@ -8,6 +8,22 @@ service Auction {
   rpc Result (result_request) returns (result_reply) {};
 }
 
+service Nodes {
+  rpc ConnectNodes (stream ping) returns (stream ping) {}
+  rpc ElectLeader () returns () {}
+  rpc UpdateBid (bid_request) returns (ping) {}
+}
+
+message ping {
+  int32 nodeId = 1;
+  int32 LeaderId = 2;
+  bool auctionLive = 3;
+  int32 version = 4;
+  int32 highestBid = 5;
+  repeated int32 clients = 6;
+  repeated int32 nodes = 7;
+}
+
 enum Outcome {
   SUCCESS = 0;
   FAIL = 1;
@@ -16,6 +32,7 @@ enum Outcome {
 
 message bid_request {
   int32 amount = 1;
+  int32 clientId = 2;
 }
 
 message result_request {

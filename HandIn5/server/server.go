@@ -23,7 +23,7 @@ type Server struct {
 	name         string
 	id           int32
 	port         int32
-	leader       bool
+	leaderId     int32
 	version      int32
 	ctx          context.Context
 	nodes        map[int32]auctionPB.AuctionClient
