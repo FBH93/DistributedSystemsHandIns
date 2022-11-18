@@ -128,9 +128,11 @@ func (s *Server) broadcast(msg string) {
 func (s *Server) Chat(cliStream pb.ChittyChat_ChatServer) error {
 	clientReq, err := cliStream.Recv()
 	if err == io.EOF {
+		log.Printf("This is an EOF Error")
 		return err
 	}
 	if err != nil {
+		log.Printf("This is another error")
 		return err
 	}
 

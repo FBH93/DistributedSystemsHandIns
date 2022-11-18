@@ -16,7 +16,7 @@ import (
 
 // Flags:
 var serverName = flag.String("name", "server", "Server Name")
-var port = flag.String("port", "5000", "Serer Port")
+var port = flag.String("port", "5400", "Serer Port")
 
 type Server struct {
 	auctionPB.UnimplementedAuctionServer
@@ -24,9 +24,11 @@ type Server struct {
 	id           int32
 	port         int32
 	leaderId     int32
+	leader       bool
 	version      int32
 	ctx          context.Context
-	nodes        map[int32]auctionPB.AuctionClient
+	nodes        map[int32]auctionPB.Nodes_ConnectNodesServer // map over nodes and streams
+	clients      map[int32]auctionPB.AuctionClient
 	auctionLive  bool
 	highestBid   int32
 	muHighestBid sync.Mutex
@@ -34,8 +36,31 @@ type Server struct {
 
 func main() {
 	flag.Parse()
-	s := launchServer()
-	s.connectToNodes()
+
+	parsePort, _ := strconv.ParseInt(*port, 10, 32)
+	ownPort := int32(parsePort)
+	ctx, _ := context.WithCancel(context.Background())
+	//defer cancel()
+	s := &Server{
+		name: *serverName,
+		port: ownPort,
+		id:   ownPort - 5400,
+		ctx:  ctx,
+		//nodes: make(map[int32]auctionPB.AuctionClient),
+	}
+	if s.port == 5400 {
+		s.leader = true
+		s.launchServer()
+	} else {
+		s.leader = false
+		leader := s.connectToLeader()
+		stream, err := leader.ConnectNodes(s.ctx)
+		go receive(stream)
+		if err != nil {
+			log.Printf("Error getting stream from leader")
+		}
+
+	}
 
 	// Keep server alive:
 	for {
@@ -44,28 +69,28 @@ func main() {
 }
 
 // TODO Implement ConnectNodes
+// Should be renamed to 'Update'?
 func (s *Server) ConnectNodes(nodeStream auctionPB.Nodes_ConnectNodesServer) error {
-	//ping, err := nodeStream.Recv()
+	ping, err := nodeStream.Recv()
+	if err != nil {
+		// Stream closed
+	}
+	s.highestBid = ping.HighestBid
 
 	return nil
 }
 
-func launchServer() *Server {
-	parsePort, _ := strconv.ParseInt(*port, 10, 32)
-	ownPort := int32(parsePort)
-	ctx, _ := context.WithCancel(context.Background())
-	//defer cancel()
-	server := &Server{
-		name:  *serverName,
-		port:  ownPort,
-		id:    ownPort - 5000,
-		ctx:   ctx,
-		nodes: make(map[int32]auctionPB.AuctionClient),
-	}
-	log.Printf("Attemps to create listener on %d", ownPort)
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", ownPort))
+// TODO Implement receive
+func receive(stream auctionPB.Nodes_ConnectNodesClient) {
+
+}
+
+func (s *Server) launchServer() {
+
+	log.Printf("Attemps to create listener on %d", s.port)
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", s.port))
 	if err != nil {
-		log.Fatalf("Failed to listen on port %d", ownPort)
+		log.Fatalf("Failed to listen on port %d", s.port)
 	}
 
 	// grpc server options:
@@ -73,7 +98,7 @@ func launchServer() *Server {
 
 	// spin grpc server:
 	grpcServer := grpc.NewServer(opts...)
-	auctionPB.RegisterAuctionServer(grpcServer, server)
+	auctionPB.RegisterAuctionServer(grpcServer, s)
 
 	go func() {
 		// Serve incoming requests:
@@ -81,32 +106,23 @@ func launchServer() *Server {
 			log.Fatalf("Failed to serve: %v", err)
 		}
 	}()
-	log.Printf("Server is listening on port %d", ownPort)
-	return server
+	log.Printf("Server is listening on port %d", s)
 }
 
-func (s *Server) connectToNodes() {
+func (s *Server) connectToLeader() auctionPB.NodesClient {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 
-	for i := 0; i < 3; i++ {
-		port := int32(5000) + int32(i)
-		if port == s.port {
-			continue
-		}
+	// maybe timeout is useful:
+	//timeContext, cancel := context.WithTimeout(context.Background(), time.Second)
+	//defer cancel()
 
-		// maybe timeout is useful:
-		//timeContext, cancel := context.WithTimeout(context.Background(), time.Second)
-		//defer cancel()
-
-		log.Printf("Trying to dial #%d", port)
-		conn, err := grpc.Dial(fmt.Sprintf(":%d", port), opts...)
-		if err != nil {
-			log.Fatalf("Failed to dial on port: %d", port)
-		}
-		node := auctionPB.NewAuctionClient(conn)
-		s.nodes[port] = node
-		log.Printf("Successfully dialed and saved node: %d", port)
-
+	log.Printf("Trying to dial #%d", port)
+	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), opts...)
+	if err != nil {
+		log.Fatalf("Failed to dial on port: %d", port)
 	}
+	leader := auctionPB.NewNodesClient(conn)
+	log.Printf("Successfully connected to the leader")
+	return leader
 }
