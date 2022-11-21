@@ -21,6 +21,7 @@ var port = flag.String("port", "5400", "Serer Port")
 
 type Server struct {
 	auctionPB.UnimplementedNodesServer
+	auctionPB.UnimplementedAuctionServer
 	name     string
 	id       int32
 	port     int32
@@ -218,6 +219,7 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 }
 
 // TODO: Update port, since it is irellevant when replicas acts as clients
+// TODO: tidy up the multiple port listening
 func (s *Server) launchServer() {
 
 	log.Printf("Attemps to create listener on %d", s.port)
@@ -227,17 +229,30 @@ func (s *Server) launchServer() {
 		return
 	}
 
+	list, err := net.Listen("tcp", fmt.Sprintf("localhost:5000"))
+	if err != nil {
+		log.Fatalf("Failed to listen on port 5000")
+		return
+	}
+
 	// grpc server options:
 	var opts []grpc.ServerOption
 
 	// spin grpc server:
-	grpcServer := grpc.NewServer(opts...)
-	//auctionPB.RegisterAuctionServer(grpcServer, s)
-	auctionPB.RegisterNodesServer(grpcServer, s)
-	log.Printf("NodesServer registrered")
+	grpcNodesServer := grpc.NewServer(opts...)
+	grpcAuctionServer := grpc.NewServer(opts...)
+	//auctionPB.RegisterAuctionServer(grpcNodesServer, s)
+	auctionPB.RegisterNodesServer(grpcNodesServer, s)
+	auctionPB.RegisterAuctionServer(grpcAuctionServer, s)
 	go func() {
 		// Serve incoming requests:
-		if err := grpcServer.Serve(lis); err != nil {
+		if err := grpcNodesServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	}()
+	go func() {
+		// Serve incoming requests:
+		if err := grpcAuctionServer.Serve(list); err != nil {
 			log.Fatalf("Failed to serve: %v", err)
 		}
 	}()
