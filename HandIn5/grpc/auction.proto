@@ -9,7 +9,7 @@ service Auction {
 }
 
 service Nodes {
-  rpc UpdateNodes (stream update) returns (stream update) {}
+  rpc UpdateNodes (stream update) returns (stream update) {};
   // TODO: Implement Election
   // rpc ElectLeader () returns () {}
 }
@@ -22,6 +22,7 @@ message update {
   int32 highestBid = 5;
   repeated int32 clients = 6;
   repeated int32 nodes = 7;
+  int32 crashes = 8;
 }
 
 enum Outcome {

@@ -41,6 +41,7 @@ func main() {
 		log.Printf("Could not connect to server. Is it running?")
 		return
 	}
+
 	go receive(stream)
 
 	// Ensure first message to server initializes the welcome message
