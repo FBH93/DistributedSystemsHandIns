@@ -144,7 +144,7 @@ var Auction_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NodesClient interface {
-	ConnectNodes(ctx context.Context, opts ...grpc.CallOption) (Nodes_ConnectNodesClient, error)
+	UpdateNodes(ctx context.Context, opts ...grpc.CallOption) (Nodes_UpdateNodesClient, error)
 }
 
 type nodesClient struct {
@@ -155,31 +155,31 @@ func NewNodesClient(cc grpc.ClientConnInterface) NodesClient {
 	return &nodesClient{cc}
 }
 
-func (c *nodesClient) ConnectNodes(ctx context.Context, opts ...grpc.CallOption) (Nodes_ConnectNodesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Nodes_ServiceDesc.Streams[0], "/grpc.Nodes/ConnectNodes", opts...)
+func (c *nodesClient) UpdateNodes(ctx context.Context, opts ...grpc.CallOption) (Nodes_UpdateNodesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Nodes_ServiceDesc.Streams[0], "/grpc.Nodes/UpdateNodes", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &nodesConnectNodesClient{stream}
+	x := &nodesUpdateNodesClient{stream}
 	return x, nil
 }
 
-type Nodes_ConnectNodesClient interface {
-	Send(*Ping) error
-	Recv() (*Ping, error)
+type Nodes_UpdateNodesClient interface {
+	Send(*Update) error
+	Recv() (*Update, error)
 	grpc.ClientStream
 }
 
-type nodesConnectNodesClient struct {
+type nodesUpdateNodesClient struct {
 	grpc.ClientStream
 }
 
-func (x *nodesConnectNodesClient) Send(m *Ping) error {
+func (x *nodesUpdateNodesClient) Send(m *Update) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *nodesConnectNodesClient) Recv() (*Ping, error) {
-	m := new(Ping)
+func (x *nodesUpdateNodesClient) Recv() (*Update, error) {
+	m := new(Update)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func (x *nodesConnectNodesClient) Recv() (*Ping, error) {
 // All implementations must embed UnimplementedNodesServer
 // for forward compatibility
 type NodesServer interface {
-	ConnectNodes(Nodes_ConnectNodesServer) error
+	UpdateNodes(Nodes_UpdateNodesServer) error
 	mustEmbedUnimplementedNodesServer()
 }
 
@@ -198,8 +198,8 @@ type NodesServer interface {
 type UnimplementedNodesServer struct {
 }
 
-func (UnimplementedNodesServer) ConnectNodes(Nodes_ConnectNodesServer) error {
-	return status.Errorf(codes.Unimplemented, "method ConnectNodes not implemented")
+func (UnimplementedNodesServer) UpdateNodes(Nodes_UpdateNodesServer) error {
+	return status.Errorf(codes.Unimplemented, "method UpdateNodes not implemented")
 }
 func (UnimplementedNodesServer) mustEmbedUnimplementedNodesServer() {}
 
@@ -214,26 +214,26 @@ func RegisterNodesServer(s grpc.ServiceRegistrar, srv NodesServer) {
 	s.RegisterService(&Nodes_ServiceDesc, srv)
 }
 
-func _Nodes_ConnectNodes_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(NodesServer).ConnectNodes(&nodesConnectNodesServer{stream})
+func _Nodes_UpdateNodes_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(NodesServer).UpdateNodes(&nodesUpdateNodesServer{stream})
 }
 
-type Nodes_ConnectNodesServer interface {
-	Send(*Ping) error
-	Recv() (*Ping, error)
+type Nodes_UpdateNodesServer interface {
+	Send(*Update) error
+	Recv() (*Update, error)
 	grpc.ServerStream
 }
 
-type nodesConnectNodesServer struct {
+type nodesUpdateNodesServer struct {
 	grpc.ServerStream
 }
 
-func (x *nodesConnectNodesServer) Send(m *Ping) error {
+func (x *nodesUpdateNodesServer) Send(m *Update) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *nodesConnectNodesServer) Recv() (*Ping, error) {
-	m := new(Ping)
+func (x *nodesUpdateNodesServer) Recv() (*Update, error) {
+	m := new(Update)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -249,8 +249,8 @@ var Nodes_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "ConnectNodes",
-			Handler:       _Nodes_ConnectNodes_Handler,
+			StreamName:    "UpdateNodes",
+			Handler:       _Nodes_UpdateNodes_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

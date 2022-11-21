@@ -9,12 +9,12 @@ service Auction {
 }
 
 service Nodes {
-  rpc ConnectNodes (stream ping) returns (stream ping) {}
+  rpc UpdateNodes (stream update) returns (stream update) {}
   // TODO: Implement Election
   // rpc ElectLeader () returns () {}
 }
 
-message ping {
+message update {
   int32 nodeId = 1;
   int32 LeaderId = 2;
   bool auctionLive = 3;

@@ -7,6 +7,7 @@ import (
 	auctionPB "github.com/FBH93/DistributedSystemsHandIns/HandIn5/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -26,8 +27,9 @@ type Server struct {
 	leaderId     int32
 	leader       bool
 	version      int32
+	crashes      int32
 	ctx          context.Context
-	nodes        map[int32]auctionPB.Nodes_ConnectNodesServer // map over nodes and streams
+	nodes        map[int32]auctionPB.Nodes_UpdateNodesServer // map over nodes and streams
 	clients      map[int32]auctionPB.AuctionClient
 	auctionLive  bool
 	highestBid   int32
@@ -48,17 +50,18 @@ func main() {
 		ctx:  ctx,
 		//nodes: make(map[int32]auctionPB.AuctionClient),
 	}
+	// make server listening on port 5400 the first leader when starting program
 	if s.port == 5400 {
 		s.leader = true
 		s.launchServer()
 	} else {
 		s.leader = false
 		leader := s.connectToLeader()
-		stream, err := leader.ConnectNodes(s.ctx)
-		go receive(stream)
+		stream, err := leader.UpdateNodes(s.ctx)
 		if err != nil {
 			log.Printf("Error getting stream from leader")
 		}
+		go s.receive(stream)
 
 	}
 
@@ -68,23 +71,74 @@ func main() {
 	}
 }
 
-// TODO Implement ConnectNodes
-// Should be renamed to 'Update'?
-func (s *Server) ConnectNodes(nodeStream auctionPB.Nodes_ConnectNodesServer) error {
-	ping, err := nodeStream.Recv()
-	if err != nil {
-		// Stream closed
+func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error {
+	for {
+		ack, err := nodeStream.Recv()
+		if err == io.EOF {
+			log.Printf("This is an EOF error receiving stream from replica node")
+			return err
+		}
+		if err != nil {
+			log.Printf("This is another error receiving stream from replica node")
+		}
+		log.Printf("Received acknowledge from node #%d on version #%d", ack.NodeId, ack.Version)
 	}
-	s.highestBid = ping.HighestBid
-
+	// Unreachable
 	return nil
 }
 
-// TODO Implement receive
-func receive(stream auctionPB.Nodes_ConnectNodesClient) {
+func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctionPB.BidReply, error) {
+	s.muHighestBid.Lock()
+	defer s.muHighestBid.Unlock()
+	log.Printf("Received bid from client id #%d on amount: %d", bidReq.ClientId, bidReq.Amount)
+	if s.auctionLive && s.highestBid <= bidReq.Amount {
+		if s.highestBid == bidReq.Amount {
+			return &auctionPB.BidReply{Outcome: 1, Comment: "Your bid is equal to highest bid, but you were too slow"}
+		}
+	}
 
 }
 
+func (s *Server) broadcastUpdate() {
+
+}
+
+// TODO Implement receive
+func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
+	for {
+		update, err := stream.Recv()
+		if err != nil {
+			// Stream closed
+			// TODO: Implement crashes
+			if s.leaderId+1 == s.id {
+				// Become leader
+				s.leaderId = s.id
+				s.crashes++
+				log.Printf("The leader is dead.. Node #%d is now the new leader", s.id)
+				s.launchServer()
+			} else {
+				log.Printf("The leader is dead.. I am not worthy (yet).\nAttempting to dial new leader..")
+				// TODO Maybe decrease this? or make it a for loop of e.g. 5 attempts
+				time.Sleep(time.Second * 5)
+				// Exit out of this forever loop??
+				// e.g. add return value, then return s.connectToLeader()
+				s.connectToLeader()
+			}
+		}
+		s.leaderId = update.LeaderId
+		s.auctionLive = update.AuctionLive
+		s.highestBid = update.HighestBid
+		// TODO: add crashes to proto
+		s.version = update.Version
+		log.Printf("Got update from leader. Now on version %d", s.version)
+		// Acknowledge leader with updated information
+		if err := stream.Send(&auctionPB.Update{Version: s.version, LeaderId: s.leaderId, AuctionLive: s.auctionLive, HighestBid: s.highestBid, NodeId: s.id}); err != nil {
+			log.Fatalf("Something went wrong sending acknowledge to leader ")
+		}
+	}
+}
+
+// TODO: Update port, since it is irellevant when replicas acts as clients
 func (s *Server) launchServer() {
 
 	log.Printf("Attemps to create listener on %d", s.port)
@@ -117,10 +171,10 @@ func (s *Server) connectToLeader() auctionPB.NodesClient {
 	//timeContext, cancel := context.WithTimeout(context.Background(), time.Second)
 	//defer cancel()
 
-	log.Printf("Trying to dial #%d", port)
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", port), opts...)
+	log.Printf("Trying to dial 5400")
+	conn, err := grpc.Dial(fmt.Sprintf(":5400"), opts...)
 	if err != nil {
-		log.Fatalf("Failed to dial on port: %d", port)
+		log.Fatalf("Failed to dial on port: 5400")
 	}
 	leader := auctionPB.NewNodesClient(conn)
 	log.Printf("Successfully connected to the leader")
