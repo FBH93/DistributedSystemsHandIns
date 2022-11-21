@@ -91,12 +91,33 @@ func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctio
 	s.muHighestBid.Lock()
 	defer s.muHighestBid.Unlock()
 	log.Printf("Received bid from client id #%d on amount: %d", bidReq.ClientId, bidReq.Amount)
-	if s.auctionLive && s.highestBid <= bidReq.Amount {
-		if s.highestBid == bidReq.Amount {
-			return &auctionPB.BidReply{Outcome: 1, Comment: "Your bid is equal to highest bid, but you were too slow"}
-		}
+	if !s.auctionLive {
+		comment := "The auction is closed.."
+		rep := &auctionPB.BidReply{Outcome: auctionPB.Outcome_FAIL, Comment: &comment}
+		// Kan nil have problemer med næstløbende if statements?
+		return rep, nil
 	}
 
+	var comment string
+	var outcome auctionPB.Outcome
+
+	hiBid := s.highestBid
+	switch {
+	case hiBid < bidReq.Amount:
+		comment = fmt.Sprintf("Your bid on amount: %d is accepted", bidReq.Amount)
+		outcome = auctionPB.Outcome_SUCCESS
+	case hiBid == bidReq.Amount:
+		comment = fmt.Sprintf("Your bid is equal to highest bid, but you were too slow..")
+		outcome = auctionPB.Outcome_FAIL
+	case hiBid > bidReq.Amount:
+		comment = fmt.Sprintf("Your bid on amount: %d was too low", bidReq.Amount)
+		outcome = auctionPB.Outcome_FAIL
+	default:
+		comment = fmt.Sprintf("You have f...ed something up")
+		outcome = auctionPB.Outcome_EXCEPTION
+	}
+	rep := &auctionPB.BidReply{Outcome: outcome, Comment: &comment}
+	return rep, nil
 }
 
 func (s *Server) broadcastUpdate() {
