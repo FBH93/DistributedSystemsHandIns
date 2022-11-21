@@ -44,11 +44,11 @@ func main() {
 	ctx, _ := context.WithCancel(context.Background())
 	//defer cancel()
 	s := &Server{
-		name: *serverName,
-		port: ownPort,
-		id:   ownPort - 5400,
-		ctx:  ctx,
-		//nodes: make(map[int32]auctionPB.AuctionClient),
+		name:  *serverName,
+		port:  ownPort,
+		id:    ownPort - 5400,
+		ctx:   ctx,
+		nodes: make(map[int32]auctionPB.Nodes_UpdateNodesServer),
 	}
 	// make server listening on port 5400 the first leader when starting program
 	if s.port == 5400 {
@@ -61,6 +61,13 @@ func main() {
 		if err != nil {
 			log.Printf("Error getting stream from leader")
 		}
+
+		// Send join statement to leader:
+		if err := stream.Send(&auctionPB.Update{NodeId: s.id}); err != nil {
+			log.Fatalf("Error sending join statement")
+		}
+
+		// Receive updates from leader:
 		go s.receive(stream)
 
 	}
@@ -72,6 +79,20 @@ func main() {
 }
 
 func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error {
+	replJoin, err := nodeStream.Recv()
+	if err == io.EOF {
+		log.Printf("This is an EOF Error")
+		return err
+	}
+	if err != nil {
+		log.Printf("This is another error")
+		return err
+	}
+	// Add replica to map
+	s.nodes[replJoin.NodeId] = nodeStream
+
+	log.Printf("Replica Node id #%d is ready for updates", replJoin.NodeId)
+
 	for {
 		ack, err := nodeStream.Recv()
 		if err == io.EOF {
@@ -83,7 +104,6 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 		}
 		log.Printf("Received acknowledge from node #%d on version #%d", ack.NodeId, ack.Version)
 	}
-	// Unreachable
 	return nil
 }
 
@@ -116,12 +136,14 @@ func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctio
 		comment = fmt.Sprintf("You have f...ed something up")
 		outcome = auctionPB.Outcome_EXCEPTION
 	}
+	// TODO: UPDATE REPLICAS BEFORE REPLYING TO CLIENT
 	rep := &auctionPB.BidReply{Outcome: outcome, Comment: &comment}
 	return rep, nil
 }
 
+// TODO: NEXT STEP: Implement broadcast
 func (s *Server) broadcastUpdate() {
-
+	log.Printf("Updating ")
 }
 
 // TODO Implement receive
