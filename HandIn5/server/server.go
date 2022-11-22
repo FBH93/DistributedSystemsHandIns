@@ -27,7 +27,7 @@ type Server struct {
 	port     int32
 	leaderId int32
 	leader   bool
-	version  int32
+	version  int32 // Should version have a lock?
 	crashes  int32
 	ctx      context.Context
 	nodes    map[int32]auctionPB.Nodes_UpdateNodesServer // map over nodes and streams
@@ -99,19 +99,27 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 
 	// Add replica to map
 	s.nodes[replJoin.NodeId] = nodeStream
+	defer s.removeReplica(replJoin.NodeId)
 
 	for {
 		ack, err := nodeStream.Recv()
 		if err == io.EOF {
 			log.Printf("This is an EOF error receiving stream from replica node")
-			return err
+			//return err
+			break
 		}
 		if err != nil {
-			log.Printf("This is another error receiving stream from replica node")
+			log.Printf("Error receiving stream from replica node")
+			break
 		}
 		log.Printf("Received acknowledge from node #%d on version #%d", ack.NodeId, ack.Version)
 	}
 	return nil
+}
+
+func (s *Server) removeReplica(nodeId int32) {
+	delete(s.nodes, nodeId)
+	log.Printf("Replica #%d is dead..", nodeId)
 }
 
 func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctionPB.BidReply, error) {
@@ -130,6 +138,7 @@ func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctio
 	var comment string
 	var outcome auctionPB.Outcome
 
+	// check bid with highest bid:
 	hiBid := s.highBid
 	switch {
 	case hiBid < bidReq.Amount:
@@ -137,6 +146,8 @@ func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctio
 		outcome = auctionPB.Outcome_SUCCESS
 		s.highBid = bidReq.Amount
 		s.highBidder = bidReq.ClientId
+		s.version++
+		s.broadcastUpdate()
 	case hiBid == bidReq.Amount:
 		comment = fmt.Sprintf("Your bid is equal to highest bid, but you were too slow..")
 		outcome = auctionPB.Outcome_FAIL
@@ -148,7 +159,6 @@ func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctio
 		outcome = auctionPB.Outcome_EXCEPTION
 	}
 
-	s.broadcastUpdate()
 	reply := &auctionPB.BidReply{Outcome: outcome, Comment: &comment}
 	return reply, nil
 }
@@ -173,7 +183,6 @@ func (s *Server) Result(ctx context.Context, resReq *auctionPB.ResultRequest) (*
 	return reply, nil
 }
 
-// TODO: NEXT STEP: Implement broadcast
 func (s *Server) broadcastUpdate() {
 	log.Printf("Broadcasting update for version #%d to replica nodes...", s.version)
 	for id, node := range s.nodes {
@@ -183,7 +192,6 @@ func (s *Server) broadcastUpdate() {
 	}
 }
 
-// TODO Implement receive
 func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 	for {
 		update, err := stream.Recv()
@@ -196,6 +204,7 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 				s.crashes++
 				log.Printf("The leader is dead.. Node #%d is now the new leader", s.id)
 				s.launchServer()
+				return
 			} else {
 				log.Printf("The leader is dead.. I am not worthy (yet).\nAttempting to dial new leader..")
 				// TODO Maybe decrease this? or make it a for loop of e.g. 5 attempts
@@ -208,7 +217,7 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 		s.leaderId = update.LeaderId
 		s.auctionLive = update.AuctionLive
 		s.highBid = update.HighestBid
-		// TODO: add crashes to proto
+		s.crashes = update.Crashes
 		s.version = update.Version
 		log.Printf("Got update from leader. Now on version %d", s.version)
 		// Acknowledge leader with updated information
