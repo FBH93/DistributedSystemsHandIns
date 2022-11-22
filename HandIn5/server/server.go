@@ -54,12 +54,12 @@ func main() {
 		nodes:    make(map[int32]auctionPB.Nodes_UpdateNodesServer),
 		highBid:  0,
 		leaderId: 0,
+		crashes:  0,
 	}
 	// make server listening on port 5400 the first leader when starting program
 	if s.port == 5400 {
 		s.leader = true
-		// FOR TESTING. TODO: Implement timer on auction
-		s.auctionLive = true
+		s.auctionLive = true // FOR TESTING. TODO: Implement timer on auction
 		s.launchServer()
 	} else {
 		s.leader = false
@@ -202,10 +202,12 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 		if err != nil {
 			// Stream closed
 			// TODO: Implement #crashes
-			if s.leaderId+1 == s.id {
+			//if s.leaderId+1 == s.id {
+			s.crashes++
+			if s.crashes == s.id {
 				// Become leader
 				s.leaderId = s.id
-				s.crashes++
+				//s.crashes++
 				log.Printf("The leader is dead.. Node #%d is now the new leader", s.id)
 				s.launchServer()
 				return
