@@ -123,6 +123,8 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 
 func (s *Server) removeReplica(nodeId int32) {
 	delete(s.nodes, nodeId)
+	s.crashes++
+	s.broadcastUpdate()
 	log.Printf("Replica #%d is dead..", nodeId)
 }
 
@@ -190,7 +192,11 @@ func (s *Server) Result(ctx context.Context, resReq *auctionPB.ResultRequest) (*
 func (s *Server) broadcastUpdate() {
 	log.Printf("Broadcasting update for version #%d to replica nodes...", s.version)
 	for id, node := range s.nodes {
-		if err := node.Send(&auctionPB.Update{Version: s.version, LeaderId: s.leaderId, HighestBid: s.highBid, AuctionLive: s.auctionLive}); err != nil {
+		if err := node.Send(&auctionPB.Update{Version: s.version,
+			LeaderId:    s.leaderId,
+			HighestBid:  s.highBid,
+			AuctionLive: s.auctionLive,
+			Crashes:     s.crashes}); err != nil {
 			log.Printf("Error broadcasting to node #%d.. Is it dead?", id)
 		}
 	}
@@ -201,7 +207,7 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 		update, err := stream.Recv()
 		if err != nil {
 			// Stream closed
-			// TODO: Implement #crashes
+			// TODO: Talk with Jonas about this
 			//if s.leaderId+1 == s.id {
 			s.crashes++
 			if s.crashes == s.id {
