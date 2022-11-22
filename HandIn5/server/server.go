@@ -63,19 +63,7 @@ func main() {
 		s.launchServer()
 	} else {
 		s.leader = false
-		leader := s.connectToLeader()
-		stream, err := leader.UpdateNodes(context.Background())
-		if err != nil {
-			log.Printf("Error getting stream from leader")
-		}
-
-		// Send join statement to leader:
-		if err := stream.Send(&auctionPB.Update{NodeId: s.id, LeaderId: s.leaderId}); err != nil {
-			log.Fatalf("Error sending join statement")
-		}
-
-		// Receive updates from leader:
-		go s.receive(stream)
+		connectionToLeader(s)
 
 	}
 
@@ -83,6 +71,22 @@ func main() {
 	for {
 		time.Sleep(time.Second * 5)
 	}
+}
+
+func connectionToLeader(s *Server) {
+	leader := s.connectToLeader()
+	stream, err := leader.UpdateNodes(context.Background())
+	if err != nil {
+		log.Printf("Error getting stream from leader")
+	}
+
+	// Send join statement to leader:
+	if err := stream.Send(&auctionPB.Update{NodeId: s.id, LeaderId: s.leaderId}); err != nil {
+		log.Fatalf("Error sending join statement")
+	}
+
+	// Receive updates from leader:
+	go s.receive(stream)
 }
 
 func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error {
@@ -197,7 +201,7 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 		update, err := stream.Recv()
 		if err != nil {
 			// Stream closed
-			// TODO: Implement crashes
+			// TODO: Implement #crashes
 			if s.leaderId+1 == s.id {
 				// Become leader
 				s.leaderId = s.id
@@ -211,7 +215,8 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 				time.Sleep(time.Second * 5)
 				// Exit out of this forever loop??
 				// e.g. add return value, then return s.connectToLeader()
-				s.connectToLeader()
+				connectionToLeader(s)
+				return
 			}
 		}
 		s.leaderId = update.LeaderId
