@@ -6,6 +6,10 @@ The goal of this hand-in is to implement, using Go, a simple auction system that
 
 The architecture is set up in such a way that the client need not know anything about the state of the system of servers. It is the responsibility of the servers to always provide the service at a particular port. If a leader dies, another replica should take over and start listening on the same port as the previous leader - and have a state consistent with the previous leader. This means that the distributed nature of the system is transparent to clients.
 
+## Diagram
+
+
+
 ## Client
 
 For this reason the code for the client (`Client.go`) is quite straightforward. It dials the service at port 5000 and then allows input of bids using stdin, which are subsequently sent to the server running on that particular port. Again, the client does not know nor care about replicas or which exact server instance is handling individual request.
@@ -17,13 +21,21 @@ The server (`Server.go`) has all logic for handling incoming bids from clients, 
 The leader maintains 
 
 * a map `nodes` of all the replicas that are connected to it
-* Highest bid amount `highBid` and the identifier of the highest bidder `highBidder`
+* highest bid amount `highBid` and the identifier of the highest bidder `highBidder`
+* a bool `auctionLive` indicating whether an auction is ongoing
+* a list `leaderQueue` of identifiers of potential leaders, for use in case of a node failure
 
 Whenever there is a change to the state of the server, it will broadcast its updated state to all other replicas (for instance in the event of a new and higher bid, or in the event of a new replica joining the system). Each replica subsequently updates its own state to match that of the one broadcasted by the leader.
 
 ### Node failures
 
+#### Leader failure
 
+The stream between the leader and its replicas will fail if the leader crashes or shuts down. Upon this, all replicas will consult the first (that is, zeroth index) element of `leaderQueue` to determine who is to become the new leader. The replica whose own ID is equal to `leaderQueue[0]` will then consider itself the new leader, and start serving both clients and the remaining replicas. The first element of `leaderQueue` is also removed, as this node should no longer be a candidate for subsequent elections. 
+
+#### Replica failure
+
+The leader - who is still operating in this case - removes the dead replica from `nodes` and `leaderQueue`. The list of potential candidates for future elections `leaderQueue` is subsequently updated for the remaining replicas. The system continues normal operation. 
 
 # Running the system
 
