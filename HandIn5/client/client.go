@@ -28,8 +28,8 @@ func main() {
 	flag.Parse()
 
 	//COMMENT OUT THESE TWO LINES TO REMOVE LOGGING TO TXT
-	logfile := setLog() //print log to a log.txt file instead of the console
-	defer logfile.Close()
+	//logfile := setLog() //print log to a log.txt file instead of the console
+	//defer logfile.Close()
 
 	parseId, _ := strconv.ParseInt(*clientId, 10, 32)
 	id := int32(parseId)
@@ -105,6 +105,7 @@ func (c *Client) result() {
 
 	}
 	log.Printf("Got result from server:\nComment: %s\nOutcome: %v", ack.Comment, ack.HighestBid)
+}
 
 // setLog sets the logger to use a log.txt file instead of the console
 func setLog() *os.File {

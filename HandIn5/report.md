@@ -4,6 +4,8 @@ The goal of this hand-in is to implement, using Go, a simple auction system that
 
 # Architecture
 
+The system uses passive replication, such that all requests are handled by the leader (primary replica), and an arbitrary number of backup replicas exist to have a copy of the state of the leader, ready to take over in the event of the leader crashing.  
+
 The architecture is set up in such a way that the client need not know anything about the state of the system of servers. It is the responsibility of the servers to always provide the service at a particular port. If a leader dies, another replica should take over and start listening on the same port as the previous leader - and have a state consistent with the previous leader. This means that the distributed nature of the system is transparent to clients.
 
 Our system thus consists of 1 leader server, and multiple (from 1 to n) server replicas that are connceted via bidirectional streams. On the client side at least 1 (and possibly many) client communicates with the leader server via rpc calls.
