@@ -22,15 +22,16 @@ var port = flag.String("port", "5400", "Serer Port")
 type Server struct {
 	auctionPB.UnimplementedNodesServer
 	auctionPB.UnimplementedAuctionServer
-	name     string
-	id       int32
-	port     int32
-	leaderId int32
-	leader   bool
-	version  int32 // Should version have a lock?
-	crashes  int32
-	ctx      context.Context
-	nodes    map[int32]auctionPB.Nodes_UpdateNodesServer // map over nodes and streams
+	name        string
+	id          int32
+	port        int32
+	leaderId    int32
+	leader      bool
+	version     int32 // Should version have a lock?
+	crashes     int32
+	ctx         context.Context
+	nodes       map[int32]auctionPB.Nodes_UpdateNodesServer // map over nodes and streams
+	leaderQueue []int32                                     // Queue of potential leaders
 	//clients     map[string]auctionPB.AuctionClient
 	auctionLive  bool
 	highBidder   int32
@@ -47,14 +48,15 @@ func main() {
 	ctx, _ := context.WithCancel(context.Background())
 	//defer cancel()
 	s := &Server{
-		name:     *serverName,
-		port:     ownPort,
-		id:       ownPort - 5400,
-		ctx:      ctx,
-		nodes:    make(map[int32]auctionPB.Nodes_UpdateNodesServer),
-		highBid:  0,
-		leaderId: 0,
-		crashes:  0,
+		name:        *serverName,
+		port:        ownPort,
+		id:          ownPort - 5400,
+		ctx:         ctx,
+		nodes:       make(map[int32]auctionPB.Nodes_UpdateNodesServer),
+		highBid:     0,
+		leaderId:    0,
+		crashes:     0,
+		leaderQueue: []int32{},
 	}
 	// make server listening on port 5400 the first leader when starting program
 	if s.port == 5400 {
@@ -103,6 +105,8 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 
 	// Add replica to map
 	s.nodes[replJoin.NodeId] = nodeStream
+	// Enqueue to leader queue
+	s.leaderQueue = append(s.leaderQueue, replJoin.NodeId)
 	defer s.removeReplica(replJoin.NodeId)
 
 	for {
@@ -123,7 +127,11 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 
 func (s *Server) removeReplica(nodeId int32) {
 	delete(s.nodes, nodeId)
-	s.crashes++
+	//for i, v:= range s.leaderQueue {
+	//	if i == nodeId {
+	//
+	//	}
+	//}
 	s.broadcastUpdate()
 	log.Printf("Replica #%d is dead..", nodeId)
 }
@@ -208,11 +216,11 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 		update, err := stream.Recv()
 		// Connection to leader is dead:
 		if err != nil {
-			// Stream closed
-			// TODO: Talk with Jonas about this
 			//if s.leaderId+1 == s.id {
 			s.crashes++
 			if s.crashes == s.id {
+				//if int32(s.leaderQueue.Peek()) == s.id {
+				//	heap.Pop(&s.leaderQueue)
 				// Become leader
 				s.leaderId = s.id
 				//s.crashes++
@@ -306,4 +314,29 @@ func (s *Server) connectToLeader() auctionPB.NodesClient {
 	leader := auctionPB.NewNodesClient(conn)
 	log.Printf("Successfully connected to the leader")
 	return leader
+}
+
+// MinHeap:
+// An IntHeap is a min-heap of ints.
+type IntHeap []int
+
+func (h IntHeap) Len() int           { return len(h) }
+func (h IntHeap) Less(i, j int) bool { return h[i] < h[j] }
+func (h IntHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h IntHeap) Peek() int {
+	return h[0]
+}
+
+func (h *IntHeap) Push(x any) {
+	// Push and Pop use pointer receivers because they modify the slice's length,
+	// not just its contents.
+	*h = append(*h, x.(int))
+}
+
+func (h *IntHeap) Pop() any {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
 }
