@@ -1,0 +1,43 @@
+2022/11/23 15:55:52 Node #0: Attemps to create listener on port 5400
+2022/11/23 15:55:52 Node #0: Server is listening on port 5000 for auction bids
+2022/11/23 15:55:52 Node #0: Server is listening on port 5400 for replica ack's
+2022/11/23 15:55:54 Node #1: Trying to dial 5400
+2022/11/23 15:55:54 Node #1: Successfully connected to the leader
+2022/11/23 15:55:54 Node #0: Replica Node id #1 has joined and ready for updates
+2022/11/23 15:55:54 Node #0: Broadcasting update for version #0 to replica nodes...
+2022/11/23 15:55:54 Node #1: Got update from leader. Now on version 0
+2022/11/23 15:55:54 Node #0: Received acknowledge from node #1 on version #0
+2022/11/23 15:55:57 Client #1: Attempting to join auction server
+2022/11/23 15:55:57 Client #1: Attempts to dial auction server
+2022/11/23 15:55:57 Client #1: The connection is: READY
+2022/11/23 15:55:57 Node #0: Broadcasting update for version #0 to replica nodes...
+2022/11/23 15:55:57 Node #1: Got update from leader. Now on version 0
+2022/11/23 15:55:57 Node #0: Received acknowledge from node #1 on version #0
+2022/11/23 15:56:02 Client #1: Requesting bid... 
+2022/11/23 15:56:02 Node #0: Received bid from client id #1 on amount: 5
+2022/11/23 15:56:02 Node #0: Broadcasting update for version #1 to replica nodes...
+2022/11/23 15:56:02 Node #0: Received acknowledge from node #1 on version #1
+2022/11/23 15:56:02 Node #1: Got update from leader. Now on version 1
+2022/11/23 15:56:02 Client #1: Got ack from server:
+Comment: Your bid on amount: 5 is accepted
+Outcome: SUCCESS
+2022/11/23 15:56:07 Client #1: Requesting result...
+2022/11/23 15:56:07 Node #0: Received result request
+2022/11/23 15:56:07 Client #1: Got result from server:
+Comment: The auction is live. Current highest bidder is id #1
+Outcome: 5
+2022/11/23 15:56:09 Node #0: Shit happenend reading input <------- SERVER CRASH HERE
+2022/11/23 15:56:09 Node #1: The leader is dead.. Node #1 is now the new leader
+2022/11/23 15:56:09 Node #1: Attemps to create listener on port 5400
+2022/11/23 15:56:09 Node #1: Server is listening on port 5000 for auction bids
+2022/11/23 15:56:09 Node #1: Server is listening on port 5400 for replica ack's
+2022/11/23 15:56:12 Client #1: Requesting bid...
+2022/11/23 15:56:12 Node #1: Received bid from client id #1 on amount: 3
+2022/11/23 15:56:12 Client #1: Got ack from server:
+Comment: Your bid on amount: 3 was too low
+Outcome: FAIL
+2022/11/23 15:56:17 Client #1: Requesting result...
+2022/11/23 15:56:17 Node #1: Received result request
+2022/11/23 15:56:17 Client #1: Got result from server:
+Comment: The auction is closed. Winner is id #1
+Outcome: 5
