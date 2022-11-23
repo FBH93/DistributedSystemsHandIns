@@ -46,10 +46,13 @@ func (c *Client) parseInput() {
 			log.Fatalf("Shit happenend reading input")
 		}
 		input = strings.TrimSpace(input)
-		parseInt, _ := strconv.ParseInt(input, 10, 32)
-		amount := int32(parseInt)
-
-		c.bid(amount)
+		parseInt, err := strconv.ParseInt(input, 10, 32)
+		if err != nil {
+			c.result()
+		} else {
+			amount := int32(parseInt)
+			c.bid(amount)
+		}
 	}
 }
 
@@ -83,7 +86,18 @@ func (c *Client) bid(amount int32) {
 	ack, err := c.server.Bid(context.Background(), bid)
 	if err != nil {
 		log.Printf("Something went wrong: %v", err)
+		log.Printf("Something went wrong: %v", err)
 	}
 
 	log.Printf("Got ack from server:\nComment: %s\nOutcome: %v", *ack.Comment, ack.Outcome)
+}
+
+func (c *Client) result() {
+	request := &auctionPB.ResultRequest{}
+	ack, err := c.server.Result(context.Background(), request)
+	if err != nil {
+		log.Printf("Something went wrong: %v", err)
+
+	}
+	log.Printf("Got result from server:\nComment: %s\nOutcome: %v", ack.Comment, ack.HighestBid)
 }
