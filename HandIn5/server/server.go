@@ -208,7 +208,7 @@ func (s *Server) Result(ctx context.Context, resReq *auctionPB.ResultRequest) (*
 	return reply, nil
 }
 
-// TODO: HERE
+// broadcastUpdate broadcasts the current state of the leader to all replicas
 func (s *Server) broadcastUpdate() {
 	log.Printf("Node #%d: Broadcasting update for version #%d to replica nodes...", s.id, s.version)
 	for id, node := range s.nodes {
@@ -223,11 +223,13 @@ func (s *Server) broadcastUpdate() {
 	}
 }
 
+// receive receives updates from the leader
 func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 	for {
 		update, err := stream.Recv()
 		// Connection to leader is dead:
 		if err != nil {
+			// Your turn to become leader. Launch new servers
 			if s.leaderQueue[0] == s.id {
 				// Become leader
 				s.leaderId = s.id
@@ -236,6 +238,7 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 				log.Printf("Node #%d: The leader is dead.. Node #%d is now the new leader", s.id, s.id)
 				s.launchServer()
 				return
+				// Not your turn to become leader, wait and dial the new leader
 			} else {
 				log.Printf("Node #%d: The leader is dead.. I am not worthy (yet).\nAttempting to dial new leader..", s.id)
 				time.Sleep(time.Second * 2)
@@ -243,13 +246,16 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 				return
 			}
 		}
+		// Set your state to the leader's
 		s.leaderId = update.LeaderId
 		s.auctionLive = update.AuctionLive
 		s.highBid = update.HighestBid
 		s.version = update.Version
 		s.highBidder = update.HighestBidder
 		s.leaderQueue = update.Nodes
+
 		log.Printf("Node #%d: Got update from leader. Now on version %d", s.id, s.version)
+
 		// Acknowledge leader with updated information
 		if err := stream.Send(&auctionPB.Update{
 			Version:       s.version,
@@ -289,34 +295,24 @@ func (s *Server) launchServer() {
 	grpcAuctionServer := grpc.NewServer(opts...)
 	auctionPB.RegisterNodesServer(grpcNodesServer, s)
 	auctionPB.RegisterAuctionServer(grpcAuctionServer, s)
+	// Serve incoming replica requests:
 	go func() {
-		// Serve incoming requests:
 		if err := grpcNodesServer.Serve(lis); err != nil {
 			log.Fatalf("Node #%d: Failed to serve: %v", s.id, err)
 		}
 	}()
+
+	// Serve incoming auction requests:
 	go func() {
-		// Serve incoming requests:
 		if err := grpcAuctionServer.Serve(list); err != nil {
 			log.Fatalf("Node #%d: Failed to serve: %v", s.id, err)
 		}
 	}()
 	log.Printf("Node #%d: Server is listening on port 5000 for auction bids", s.id)
 	log.Printf("Node #%d: Server is listening on port 5400 for replica ack's", s.id)
-	s.parseInput()
-}
 
-func (s *Server) connectToLeader() auctionPB.NodesClient {
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	log.Printf("Node #%d: Trying to dial 5400", s.id)
-	conn, err := grpc.Dial(fmt.Sprintf(":5400"), opts...)
-	if err != nil {
-		log.Fatalf("Node #%d: Failed to dial on port: 5400", s.id)
-	}
-	leader := auctionPB.NewNodesClient(conn)
-	log.Printf("Node #%d: Successfully connected to the leader", s.id)
-	return leader
+	// Parse input on server-side to start/stop auction:
+	s.parseInput()
 }
 
 // setLog sets the logger to use a log.txt file instead of the console
