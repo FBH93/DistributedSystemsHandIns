@@ -6,7 +6,7 @@ The goal of this hand-in is to implement, using Go, a simple auction system that
 
 The architecture is set up in such a way that the client need not know anything about the state of the system of servers. It is the responsibility of the servers to always provide the service at a particular port. If a leader dies, another replica should take over and start listening on the same port as the previous leader - and have a state consistent with the previous leader. This means that the distributed nature of the system is transparent to clients.
 
-Our system thus consists of 1 leader server, and multiple (from 1 to n) server replicas. On the client side at least 1 (and possibly many) client communicates with the leader server via rpc calls. 
+Our system thus consists of 1 leader server, and multiple (from 1 to n) server replicas that are connceted via bidirectional streams. On the client side at least 1 (and possibly many) client communicates with the leader server via rpc calls.
 
 ## Diagram
 
@@ -18,7 +18,7 @@ For this reason the code for the client (`Client.go`) is quite straightforward. 
 
 ## Server
 
-The server (`Server.go`) has all logic for handling incoming bids from clients, keeping states in sync across replicas and handling failure of replicas though election of a new leader. A server acting as leader is to always a have a client-facing service running on port 5000 and a server-facing service on port 5400, that other replicas will dial. 
+The server (`Server.go`) has all logic for handling incoming bids from clients, keeping states in sync across replicas and handling failure of replicas though election of a new leader. A server acting as leader is to always a have a client-facing service running on port 5000 and a server-facing service on port 5400, that other replicas will dial.
 
 The leader maintains 
 
@@ -57,15 +57,20 @@ Start any number of clients using
 
 ​	and so on...
 
-In the client terminal, you can make a bet by typing a number. Inputting any non-integer value will send a result request to the server. 
+In the client terminal, you can make a bet by typing a number. Inputting any non-integer value will send a result request to the server.
 
 # Correctness
 
 ## 1: Consistency
 
-The system satisfies linearizability. 
+The system satisfies linearizability.
 
-Before the server sends acknowledgement for a bid back to a client, it requires the bid to be reflected in the state of all other replicas. This way, we always provide the most recently written value for subsequent reads. 
+We define an event as an action that fully completes, for example a client calling bid and getting a response back (either success, fail or exception). With this definition of an event, we can determine that a client will always be given a correct answer to their request, because every server should have the same view regardless of any client updates to the data stored in the system.
+
+Example: A client sends a bid to a server. The server receives the bid request, but before the server sends acknowledgement for a bid back to a client, it requires the bid to be reflected in the state of all other replicas. Once the server has received acknowledgement from all replicas, it can then send the final response to the client. This way, we always provide the correct shared value for subsequent reads.
+
+Example picture of bid request/response.
+![Linearizalibty](assets/LinearizabilityBid.png)
 
 ## 2: Protocol correctness
 
