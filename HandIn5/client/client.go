@@ -42,6 +42,9 @@ func main() {
 
 }
 
+// parseInput parses input from client
+// any intput parsed as an int is a bid
+// else it is a result request
 func (c *Client) parseInput() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
@@ -60,6 +63,7 @@ func (c *Client) parseInput() {
 	}
 }
 
+// Connect to auction server
 func (c *Client) connectToServer() {
 	// Dial options:
 	var opts []grpc.DialOption
@@ -81,6 +85,7 @@ func (c *Client) connectToServer() {
 	log.Printf("Client #%d: The connection is: %s\n", c.id, conn.GetState().String())
 }
 
+// bid places a bid on the auction and receives an ack from server
 func (c *Client) bid(amount int32) {
 	log.Printf("Client #%d: Requesting bid...", c.id)
 	bid := &auctionPB.BidRequest{
@@ -97,6 +102,7 @@ func (c *Client) bid(amount int32) {
 	log.Printf("Client #%d: Got ack from server:\nComment: %s\nOutcome: %v", c.id, *ack.Comment, ack.Outcome)
 }
 
+// result queries the auction server for the current state of the auction
 func (c *Client) result() {
 	log.Printf("Client #%d: Requesting result...", c.id)
 	request := &auctionPB.ResultRequest{}
