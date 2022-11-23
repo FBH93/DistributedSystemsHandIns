@@ -36,11 +36,10 @@ type Server struct {
 	nodes       map[int32]auctionPB.Nodes_UpdateNodesServer // map over nodes and streams
 	leaderQueue []int32                                     // Queue of potential leaders
 	//clients     map[string]auctionPB.AuctionClient
-	auctionLive  bool
-	highBidder   int32
-	highBid      int32
-	muHighBid    sync.Mutex
-	muHighBidder sync.Mutex
+	auctionLive bool
+	highBidder  int32
+	highBid     int32
+	lock        sync.Mutex
 }
 
 func main() {
@@ -152,10 +151,8 @@ func remove(slice []int32, s int) []int32 {
 }
 
 func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctionPB.BidReply, error) {
-	s.muHighBid.Lock()
-	defer s.muHighBid.Unlock()
-	s.muHighBidder.Lock()
-	defer s.muHighBidder.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	log.Printf("Received bid from client id #%d on amount: %d", bidReq.ClientId, bidReq.Amount)
 	if !s.auctionLive {
 		comment := "The auction is closed.."
@@ -193,10 +190,8 @@ func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctio
 }
 
 func (s *Server) Result(ctx context.Context, resReq *auctionPB.ResultRequest) (*auctionPB.ResultReply, error) {
-	s.muHighBid.Lock()
-	defer s.muHighBid.Unlock()
-	s.muHighBidder.Lock()
-	defer s.muHighBidder.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	var comment string
 	if !s.auctionLive {
 		if s.highBid == 0 {
