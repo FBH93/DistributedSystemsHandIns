@@ -25,17 +25,13 @@ var port = flag.String("port", "5400", "Serer Port")
 type Server struct {
 	auctionPB.UnimplementedNodesServer
 	auctionPB.UnimplementedAuctionServer
-	name     string
-	id       int32
-	port     int32
-	leaderId int32
-	leader   bool
-	version  int32
-	crashes  int32
-	//ctx         context.Context
+	name        string
+	id          int32
+	port        int32
+	leaderId    int32
+	version     int32
 	nodes       map[int32]auctionPB.Nodes_UpdateNodesServer // map over nodes and streams
 	leaderQueue []int32                                     // Queue of potential leaders
-	//clients     map[string]auctionPB.AuctionClient
 	auctionLive bool
 	highBidder  int32
 	highBid     int32
@@ -47,17 +43,13 @@ func main() {
 
 	parsePort, _ := strconv.ParseInt(*port, 10, 32)
 	ownPort := int32(parsePort)
-	//ctx, _ := context.WithCancel(context.Background())
-	//defer cancel()
 	s := &Server{
-		name: *serverName,
-		port: ownPort,
-		id:   ownPort - 5400,
-		//ctx:         ctx,
+		name:        *serverName,
+		port:        ownPort,
+		id:          ownPort - 5400,
 		nodes:       make(map[int32]auctionPB.Nodes_UpdateNodesServer),
 		highBid:     0,
 		leaderId:    0,
-		crashes:     0,
 		leaderQueue: []int32{},
 	}
 
@@ -65,15 +57,13 @@ func main() {
 	//logfile := setLog() //print log to a log.txt file instead of the console
 	//defer logfile.Close()
 
-	// make server listening on port 5400 the first leader when starting program
+	// Make server listening on port 5400 the first leader when starting program
 	if s.port == 5400 {
-		s.leader = true
 		s.auctionLive = false
 		s.launchServer()
+		// Otherwise, connect to leader:
 	} else {
-		s.leader = false
 		connectToLeader(s)
-
 	}
 
 	// Keep server alive:
@@ -86,35 +76,38 @@ func main() {
 func connectToLeader(s *Server) {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	log.Printf("Trying to dial 5400")
+	log.Printf("Node #%d: Trying to dial 5400", s.id)
 	conn, err := grpc.Dial(fmt.Sprintf(":5400"), opts...)
 	if err != nil {
-		log.Fatalf("Failed to dial on port: 5400")
+		log.Fatalf("Node #%d: Failed to dial on port: 5400", s.id)
 	}
 	leader := auctionPB.NewNodesClient(conn)
-	log.Printf("Successfully connected to the leader")
+	log.Printf("Node #%d: Successfully connected to the leader", s.id)
 
+	// Receive stream from leader:
 	stream, err := leader.UpdateNodes(context.Background())
 	if err != nil {
-		log.Printf("Error getting stream from leader")
+		log.Printf("Node #%d: Error getting stream from leader", s.id)
 	}
 
 	// Send join statement to leader:
 	if err := stream.Send(&auctionPB.Update{NodeId: s.id, LeaderId: s.leaderId}); err != nil {
-		log.Fatalf("Error sending join statement")
+		log.Fatalf("Node #%d: Error sending join statement", s.id)
 	}
 
 	// Receive updates from leader:
 	go s.receive(stream)
 }
 
+// UpdateNodes is used by the leader to receive streams and ack's from replicas
 func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error {
+	// Get replica
 	replJoin, err := nodeStream.Recv()
 	if err != nil {
-		log.Printf("Error receiving stream from replica node")
+		log.Printf("Node #%d: Error receiving stream from replica node", s.id)
 		return err
 	}
-	log.Printf("Replica Node id #%d has joined and ready for updates", replJoin.NodeId)
+	log.Printf("Node #%d: Replica Node id #%d has joined and ready for updates", s.id, replJoin.NodeId)
 	// Add replica to map
 	s.nodes[replJoin.NodeId] = nodeStream
 	// Enqueue to leader queue
@@ -127,10 +120,10 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 	for {
 		ack, err := nodeStream.Recv()
 		if err != nil {
-			log.Printf("Replica #%d is dead..", replJoin.NodeId)
+			log.Printf("Node #%d: Replica #%d is dead..", s.id, replJoin.NodeId)
 			break
 		}
-		log.Printf("Received acknowledge from node #%d on version #%d", ack.NodeId, ack.Version)
+		log.Printf("Node #%d: Received acknowledge from node #%d on version #%d", s.id, ack.NodeId, ack.Version)
 	}
 	return nil
 }
@@ -153,7 +146,7 @@ func remove(slice []int32, s int) []int32 {
 func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctionPB.BidReply, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	log.Printf("Received bid from client id #%d on amount: %d", bidReq.ClientId, bidReq.Amount)
+	log.Printf("Node #%d: Received bid from client id #%d on amount: %d", s.id, bidReq.ClientId, bidReq.Amount)
 	if !s.auctionLive {
 		comment := "The auction is closed.."
 		rep := &auctionPB.BidReply{Outcome: auctionPB.Outcome_FAIL, Comment: &comment}
@@ -208,16 +201,15 @@ func (s *Server) Result(ctx context.Context, resReq *auctionPB.ResultRequest) (*
 }
 
 func (s *Server) broadcastUpdate() {
-	log.Printf("Broadcasting update for version #%d to replica nodes...", s.version)
+	log.Printf("Node #%d: Broadcasting update for version #%d to replica nodes...", s.id, s.version)
 	for id, node := range s.nodes {
 		if err := node.Send(&auctionPB.Update{Version: s.version,
 			LeaderId:      s.leaderId,
 			HighestBid:    s.highBid,
 			AuctionLive:   s.auctionLive,
-			Crashes:       s.crashes,
 			HighestBidder: s.highBidder,
 			Nodes:         s.leaderQueue}); err != nil {
-			log.Printf("Error broadcasting to node #%d.. Is it dead?", id)
+			log.Printf("Node #%d: Error broadcasting to node #%d.. Is it dead?", s.id, id)
 		}
 	}
 }
@@ -232,11 +224,11 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 				s.leaderId = s.id
 				// remove yourself from leader queue
 				s.leaderQueue = remove(s.leaderQueue, 0)
-				log.Printf("The leader is dead.. Node #%d is now the new leader", s.id)
+				log.Printf("Node #%d: The leader is dead.. Node #%d is now the new leader", s.id, s.id)
 				s.launchServer()
 				return
 			} else {
-				log.Printf("The leader is dead.. I am not worthy (yet).\nAttempting to dial new leader..")
+				log.Printf("Node #%d: The leader is dead.. I am not worthy (yet).\nAttempting to dial new leader..", s.id)
 				time.Sleep(time.Second * 2)
 				connectToLeader(s)
 				return
@@ -245,11 +237,10 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 		s.leaderId = update.LeaderId
 		s.auctionLive = update.AuctionLive
 		s.highBid = update.HighestBid
-		s.crashes = update.Crashes
 		s.version = update.Version
 		s.highBidder = update.HighestBidder
 		s.leaderQueue = update.Nodes
-		log.Printf("Got update from leader. Now on version %d", s.version)
+		log.Printf("Node #%d: Got update from leader. Now on version %d", s.id, s.version)
 		// Acknowledge leader with updated information
 		if err := stream.Send(&auctionPB.Update{
 			Version:       s.version,
@@ -259,7 +250,7 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 			HighestBidder: s.highBidder,
 			NodeId:        s.id,
 			Nodes:         s.leaderQueue}); err != nil {
-			log.Fatalf("Something went wrong sending acknowledge to leader ")
+			log.Fatalf("Node #%d: Something went wrong sending acknowledge to leader", s.id)
 		}
 	}
 }
@@ -268,16 +259,16 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 // and creates a reader for starting/stopping an auction
 func (s *Server) launchServer() {
 
-	log.Printf("Attemps to create listener on port 5400")
+	log.Printf("Node #%d: Attemps to create listener on port 5400", s.id)
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:5400"))
 	if err != nil {
-		log.Fatalf("Failed to listen on port %d", s.port)
+		log.Fatalf("Node #%d: Failed to listen on port %d", s.id, s.port)
 		return
 	}
 
 	list, err := net.Listen("tcp", fmt.Sprintf("localhost:5000"))
 	if err != nil {
-		log.Fatalf("Failed to listen on port 5000 and 5400")
+		log.Fatalf("Node #%d: Failed to listen on port 5000 and 5400", s.id)
 		return
 	}
 
@@ -292,30 +283,30 @@ func (s *Server) launchServer() {
 	go func() {
 		// Serve incoming requests:
 		if err := grpcNodesServer.Serve(lis); err != nil {
-			log.Fatalf("Failed to serve: %v", err)
+			log.Fatalf("Node #%d: Failed to serve: %v", s.id, err)
 		}
 	}()
 	go func() {
 		// Serve incoming requests:
 		if err := grpcAuctionServer.Serve(list); err != nil {
-			log.Fatalf("Failed to serve: %v", err)
+			log.Fatalf("Node #%d: Failed to serve: %v", s.id, err)
 		}
 	}()
-	log.Printf("Server is listening on port 5000 for auction bids")
-	log.Printf("Server is listening on port 5400 for replica ack's")
+	log.Printf("Node #%d: Server is listening on port 5000 for auction bids", s.id)
+	log.Printf("Node #%d: Server is listening on port 5400 for replica ack's", s.id)
 	s.parseInput()
 }
 
 func (s *Server) connectToLeader() auctionPB.NodesClient {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	log.Printf("Trying to dial 5400")
+	log.Printf("Node #%d: Trying to dial 5400", s.id)
 	conn, err := grpc.Dial(fmt.Sprintf(":5400"), opts...)
 	if err != nil {
-		log.Fatalf("Failed to dial on port: 5400")
+		log.Fatalf("Node #%d: Failed to dial on port: 5400", s.id)
 	}
 	leader := auctionPB.NewNodesClient(conn)
-	log.Printf("Successfully connected to the leader")
+	log.Printf("Node #%d: Successfully connected to the leader", s.id)
 	return leader
 }
 
@@ -342,13 +333,13 @@ func (s *Server) parseInput() {
 	for {
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatalf("Shit happenend reading input")
+			log.Fatalf("Node #%d: Shit happenend reading input", s.id)
 		}
 		input = strings.TrimSpace(input)
 		switch input {
 		case "start":
 			if s.auctionLive {
-				log.Printf("Auction is already live\n")
+				log.Printf("Node #%d: Auction is already live\n", s.id)
 				continue
 			} else {
 				s.highBidder = 0
@@ -359,7 +350,7 @@ func (s *Server) parseInput() {
 			}
 		case "end":
 			if !s.auctionLive {
-				log.Printf("Auction is already finished")
+				log.Printf("Node #%d: Auction is already finished", s.id)
 			} else {
 				s.auctionLive = false
 				s.broadcastUpdate()
