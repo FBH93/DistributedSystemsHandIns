@@ -274,7 +274,7 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 // TODO: tidy up the multiple port listening
 func (s *Server) launchServer() {
 
-	log.Printf("Attemps to create listener on %d", s.port)
+	log.Printf("Attemps to create listener on port 5400")
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:5400"))
 	if err != nil {
 		log.Fatalf("Failed to listen on port %d", s.port)
