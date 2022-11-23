@@ -5,17 +5,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
-	"os"
-
 	auction "github.com/FBH93/DistributedSystemsHandIns/HandIn5/grpc"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"log"
+	"os"
+	"strconv"
 )
 
-// Same principle as in client. Flags allows for user specific arguments/values
-var clientsName = flag.String("name", "default", "Senders name")
+// run using go run Client/Client.go -id=?
+var clientId = flag.Int("id", 0, "Client id")
 var serverPort = flag.String("server", "5000", "Auction server")
 
 var server auction.AuctionClient //the server
@@ -24,8 +23,9 @@ var ServerConn *grpc.ClientConn  //the server connection
 func main() {
 	//parse flag/arguments
 	flag.Parse()
+	fmt.Printf("Starting client with id: %v \n", *clientId)
 
-	fmt.Println("--- CLIENT APP ---")
+	fmt.Println("------ CLIENT APP ------")
 
 	//log to file instead of console
 	//f := setLog()
@@ -56,7 +56,7 @@ func ConnectToServer() {
 	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	//dial the server, with the flag "server", to get a connection to it
-	log.Printf("client %s: Attempts to dial on port %s\n", *clientsName, *serverPort)
+	log.Printf("client %v: Attempts to dial on port %s\n", *clientId, *serverPort)
 	conn, err := grpc.Dial(fmt.Sprintf(":%s", *serverPort), opts...)
 	if err != nil {
 		log.Printf("Fail to Dial : %v", err)
@@ -73,20 +73,23 @@ func ConnectToServer() {
 func bid(inputBid int32) {
 	request := &auction.Bid{
 		Bid: inputBid,
+		Id:  int32(*clientId),
 	}
-	ack, err := server.Bid(context.Background(), request)
+	var ctx = context.Background()
+	ack, err := server.Bid(ctx, request)
 	if err != nil {
-		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
-		log.Println(err)
-	}
+		// log.Println(err)
+		log.Printf("Client %v: no response from the server, attempting to reconnect to next port and resend message...", *clientId)
+		ctx.Done() // "cancel" existing bid request
+		serverPortInt, _ := strconv.ParseInt(*serverPort, 10, 32)
+		*serverPort = strconv.FormatInt(1+serverPortInt, 10)
+		ConnectToServer()
+		server.Bid(context.Background(), request)
 
-	// check if the server has handled the request correctly
-	if ack.Ack == true {
-		fmt.Printf("Success, the bid was received")
 	} else {
-		// something could be added here to handle the error
-		// but hopefully this will never be reached
-		fmt.Println("Oh no something went wrong :(")
+		if ack.Ack == true {
+			fmt.Printf("Success, acknowledgement for bid was returned by server \n")
+		}
 	}
 }
 

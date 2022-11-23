@@ -5,11 +5,13 @@ option go_package = "github.com/FBH93/DistributedSystemsHandIns/HandIn5/grpc";
 
 service Auction {
   rpc bid (Bid) returns (Ack){};
+  rpc relayBid (Bid) returns (Ack){};
   rpc result (ResultReq) returns (Outcome){};
 }
 
 message Bid {
   int32 bid = 1;
+  int32 id = 2;
 }
 
 message Ack {
@@ -19,6 +21,7 @@ message Ack {
 message ResultReq{}
 
 message Outcome {
-  int32 highestBid = 1;
-  string winner = 2;
+  bool ongoing = 1;
+  int32 highestBid = 2;
+  int32 highestBidder = 3;
 }
