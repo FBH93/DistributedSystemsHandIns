@@ -28,8 +28,8 @@ func main() {
 	flag.Parse()
 
 	//COMMENT OUT THESE TWO LINES TO REMOVE LOGGING TO TXT
-	logfile := setLog() //print log to a log.txt file instead of the console
-	defer logfile.Close()
+	//logfile := setLog() //print log to a log.txt file instead of the console
+	//defer logfile.Close()
 
 	log.Printf("[T:%d] Attempting to connect to server", lampTime)
 	connectToServer()
@@ -41,6 +41,7 @@ func main() {
 		log.Printf("Could not connect to server. Is it running?")
 		return
 	}
+
 	go receive(stream)
 
 	// Ensure first message to server initializes the welcome message
