@@ -74,6 +74,8 @@ Example: A client sends a bid to a server. The server receives the bid request, 
 Example picture of bid request/response.
 ![Linearizalibty](assets/LinearizabilityBid.png)
 
+In case of multiple clients sending a bid request, we make use of a lock on highestBid and highestBidder, so that they will be solved sequentially and avoid race conditions. (i.e. if two clients bid the same amount at the same time, only 1 will have the bid accepted, and the other will get a fail). 
+
 ## 2: Protocol correctness
 
 The system correctly handles crashes of any client or server. 
