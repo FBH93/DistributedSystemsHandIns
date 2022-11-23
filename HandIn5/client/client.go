@@ -30,14 +30,13 @@ func main() {
 	//COMMENT OUT THESE TWO LINES TO REMOVE LOGGING TO TXT
 	//logfile := setLog() //print log to a log.txt file instead of the console
 	//defer logfile.Close()
-
 	parseId, _ := strconv.ParseInt(*clientId, 10, 32)
 	id := int32(parseId)
 
 	c := &Client{
 		id: id,
 	}
-	log.Printf("Client %d attempting to join auction server", c.id)
+	log.Printf("Client #%d: Attempting to join auction server", c.id)
 	c.connectToServer()
 	c.parseInput()
 
@@ -48,7 +47,7 @@ func (c *Client) parseInput() {
 	for {
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatalf("Shit happenend reading input")
+			log.Fatalf("Client #%d: Shit happenend reading input", c.id)
 		}
 		input = strings.TrimSpace(input)
 		parseInt, err := strconv.ParseInt(input, 10, 32)
@@ -71,15 +70,15 @@ func (c *Client) connectToServer() {
 	defer cancel()
 
 	// Dial the server to get a connection:
-	log.Printf("Attempts to dial auction server")
+	log.Printf("Client #%d: Attempts to dial auction server", c.id)
 	conn, err := grpc.DialContext(timeContext, fmt.Sprintf(":5000"), opts...)
 	if err != nil {
-		log.Printf("Failed to dial: %v\n", err)
+		log.Printf("Client #%d: Failed to dial: %v\n", c.id, err)
 		return
 	}
 
 	c.server = auctionPB.NewAuctionClient(conn)
-	log.Printf("The connection is: %s\n", conn.GetState().String())
+	log.Printf("Client #%d: The connection is: %s\n", c.id, conn.GetState().String())
 }
 
 func (c *Client) bid(amount int32) {
@@ -90,21 +89,21 @@ func (c *Client) bid(amount int32) {
 
 	ack, err := c.server.Bid(context.Background(), bid)
 	if err != nil {
-		log.Printf("Something went wrong: %v", err)
-		log.Printf("Something went wrong: %v", err)
+		log.Printf("Client #%d: Something went wrong: %v", c.id, err)
+		log.Printf("Client #%d: Something went wrong: %v", c.id, err)
 	}
 
-	log.Printf("Got ack from server:\nComment: %s\nOutcome: %v", *ack.Comment, ack.Outcome)
+	log.Printf("Client #%d: Got ack from server:\nComment: %s\nOutcome: %v", c.id, *ack.Comment, ack.Outcome)
 }
 
 func (c *Client) result() {
 	request := &auctionPB.ResultRequest{}
 	ack, err := c.server.Result(context.Background(), request)
 	if err != nil {
-		log.Printf("Something went wrong: %v", err)
+		log.Printf("Client #%d: Something went wrong: %v", c.id, err)
 
 	}
-	log.Printf("Got result from server:\nComment: %s\nOutcome: %v", ack.Comment, ack.HighestBid)
+	log.Printf("Client #%d: Got result from server:\nComment: %s\nOutcome: %v", c.id, ack.Comment, ack.HighestBid)
 }
 
 // setLog sets the logger to use a log.txt file instead of the console
