@@ -82,6 +82,7 @@ func (c *Client) connectToServer() {
 }
 
 func (c *Client) bid(amount int32) {
+	log.Printf("Client #%d: Requesting bid...", c.id)
 	bid := &auctionPB.BidRequest{
 		Amount:   amount,
 		ClientId: c.id,
@@ -97,6 +98,7 @@ func (c *Client) bid(amount int32) {
 }
 
 func (c *Client) result() {
+	log.Printf("Client #%d: Requesting result...", c.id)
 	request := &auctionPB.ResultRequest{}
 	ack, err := c.server.Result(context.Background(), request)
 	if err != nil {

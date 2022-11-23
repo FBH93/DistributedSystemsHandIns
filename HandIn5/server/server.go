@@ -117,6 +117,7 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 	// remove replica when stream terminates
 	defer s.removeReplica(replJoin.NodeId)
 
+	// Receive acks from replicas:
 	for {
 		ack, err := nodeStream.Recv()
 		if err != nil {
@@ -128,6 +129,7 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 	return nil
 }
 
+// removeReplica removes replica and broadcasts update to other replicas
 func (s *Server) removeReplica(nodeId int32) {
 	delete(s.nodes, nodeId)
 	for i, v := range s.leaderQueue {
@@ -138,15 +140,18 @@ func (s *Server) removeReplica(nodeId int32) {
 	s.broadcastUpdate()
 }
 
-// Helper method to remove from slice
+// Helper method to remove from slice and preserve order
 func remove(slice []int32, s int) []int32 {
 	return append(slice[:s], slice[s+1:]...)
 }
 
+// Bid handles bids from auction clients
+// Returns an outcome and comment to the client
 func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctionPB.BidReply, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	log.Printf("Node #%d: Received bid from client id #%d on amount: %d", s.id, bidReq.ClientId, bidReq.Amount)
+	// Auction not live:
 	if !s.auctionLive {
 		comment := "The auction is closed.."
 		rep := &auctionPB.BidReply{Outcome: auctionPB.Outcome_FAIL, Comment: &comment}
@@ -157,7 +162,7 @@ func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctio
 	var comment string
 	var outcome auctionPB.Outcome
 
-	// check bid with highest bid:
+	// check client bid with highest bid:
 	hiBid := s.highBid
 	switch {
 	case hiBid < bidReq.Amount:
@@ -178,10 +183,13 @@ func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctio
 		outcome = auctionPB.Outcome_EXCEPTION
 	}
 
+	// reply outcome and comment to client:
 	reply := &auctionPB.BidReply{Outcome: outcome, Comment: &comment}
 	return reply, nil
 }
 
+// Result returns the state of the auction, highest bid and the highest bidder
+// return 0 for highest bid and bidder if no bid has been placed
 func (s *Server) Result(ctx context.Context, resReq *auctionPB.ResultRequest) (*auctionPB.ResultReply, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -200,6 +208,7 @@ func (s *Server) Result(ctx context.Context, resReq *auctionPB.ResultRequest) (*
 	return reply, nil
 }
 
+// TODO: HERE
 func (s *Server) broadcastUpdate() {
 	log.Printf("Node #%d: Broadcasting update for version #%d to replica nodes...", s.id, s.version)
 	for id, node := range s.nodes {
