@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -62,13 +64,13 @@ func main() {
 	}
 
 	//COMMENT OUT THESE TWO LINES TO REMOVE LOGGING TO TXT
-	logfile := setLog() //print log to a log.txt file instead of the console
-	defer logfile.Close()
+	//logfile := setLog() //print log to a log.txt file instead of the console
+	//defer logfile.Close()
 
 	// make server listening on port 5400 the first leader when starting program
 	if s.port == 5400 {
 		s.leader = true
-		s.auctionLive = true // FOR TESTING. TODO: Implement timer on auction
+		s.auctionLive = false
 		s.launchServer()
 	} else {
 		s.leader = false
@@ -198,12 +200,12 @@ func (s *Server) Result(ctx context.Context, resReq *auctionPB.ResultRequest) (*
 	var comment string
 	if !s.auctionLive {
 		if s.highBid == 0 {
-			comment = "The auction is closed and no auctions recorded"
+			comment = "The auction is closed and no bids recorded"
 		} else {
 			comment = fmt.Sprintf("The auction is closed. Winner is id #%d", s.highBidder)
 		}
 	} else {
-		comment = fmt.Sprintf("The auction is live. Highest bidder is id #%d", s.highBidder)
+		comment = fmt.Sprintf("The auction is live. Current highest bidder is id #%d", s.highBidder)
 	}
 
 	reply := &auctionPB.ResultReply{Comment: comment, HighestBid: s.highBid}
@@ -307,6 +309,7 @@ func (s *Server) launchServer() {
 		}
 	}()
 	log.Printf("Server is listening on port %d", s.port)
+	s.parseInput()
 }
 
 func (s *Server) connectToLeader() auctionPB.NodesClient {
@@ -341,4 +344,36 @@ func setLog() *os.File {
 	}
 	log.SetOutput(f)
 	return f
+}
+
+func (s *Server) parseInput() {
+	fmt.Println("Press <start> or <end> to start/end auction")
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatalf("Shit happenend reading input")
+		}
+		input = strings.TrimSpace(input)
+		switch input {
+		case "start":
+			if s.auctionLive {
+				log.Printf("Auction is already live\n")
+				continue
+			} else {
+				s.highBidder = 0
+				s.highBid = 0
+				s.version = 0
+				s.auctionLive = true
+				s.broadcastUpdate()
+			}
+		case "end":
+			if !s.auctionLive {
+				log.Printf("Auction is already finished")
+			} else {
+				s.auctionLive = false
+				s.broadcastUpdate()
+			}
+		}
+	}
 }
