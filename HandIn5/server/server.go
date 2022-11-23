@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -26,14 +25,14 @@ var port = flag.String("port", "5400", "Serer Port")
 type Server struct {
 	auctionPB.UnimplementedNodesServer
 	auctionPB.UnimplementedAuctionServer
-	name        string
-	id          int32
-	port        int32
-	leaderId    int32
-	leader      bool
-	version     int32 // Should version have a lock?
-	crashes     int32
-	ctx         context.Context
+	name     string
+	id       int32
+	port     int32
+	leaderId int32
+	leader   bool
+	version  int32
+	crashes  int32
+	//ctx         context.Context
 	nodes       map[int32]auctionPB.Nodes_UpdateNodesServer // map over nodes and streams
 	leaderQueue []int32                                     // Queue of potential leaders
 	//clients     map[string]auctionPB.AuctionClient
@@ -49,13 +48,13 @@ func main() {
 
 	parsePort, _ := strconv.ParseInt(*port, 10, 32)
 	ownPort := int32(parsePort)
-	ctx, _ := context.WithCancel(context.Background())
+	//ctx, _ := context.WithCancel(context.Background())
 	//defer cancel()
 	s := &Server{
-		name:        *serverName,
-		port:        ownPort,
-		id:          ownPort - 5400,
-		ctx:         ctx,
+		name: *serverName,
+		port: ownPort,
+		id:   ownPort - 5400,
+		//ctx:         ctx,
 		nodes:       make(map[int32]auctionPB.Nodes_UpdateNodesServer),
 		highBid:     0,
 		leaderId:    0,
@@ -74,7 +73,7 @@ func main() {
 		s.launchServer()
 	} else {
 		s.leader = false
-		connectionToLeader(s)
+		connectToLeader(s)
 
 	}
 
@@ -84,8 +83,18 @@ func main() {
 	}
 }
 
-func connectionToLeader(s *Server) {
-	leader := s.connectToLeader()
+// connectToLeader establishes connection to the leader and receives
+func connectToLeader(s *Server) {
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	log.Printf("Trying to dial 5400")
+	conn, err := grpc.Dial(fmt.Sprintf(":5400"), opts...)
+	if err != nil {
+		log.Fatalf("Failed to dial on port: 5400")
+	}
+	leader := auctionPB.NewNodesClient(conn)
+	log.Printf("Successfully connected to the leader")
+
 	stream, err := leader.UpdateNodes(context.Background())
 	if err != nil {
 		log.Printf("Error getting stream from leader")
@@ -102,32 +111,24 @@ func connectionToLeader(s *Server) {
 
 func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error {
 	replJoin, err := nodeStream.Recv()
-	if err == io.EOF {
-		log.Printf("This is an EOF Error")
-		return err
-	}
 	if err != nil {
-		log.Printf("This is another error")
+		log.Printf("Error receiving stream from replica node")
 		return err
 	}
-	log.Printf("Replica Node id #%d is ready for updates", replJoin.NodeId)
-
+	log.Printf("Replica Node id #%d has joined and ready for updates", replJoin.NodeId)
 	// Add replica to map
 	s.nodes[replJoin.NodeId] = nodeStream
 	// Enqueue to leader queue
 	s.leaderQueue = append(s.leaderQueue, replJoin.NodeId)
+	// broadcast new replica to the system:
 	s.broadcastUpdate()
+	// remove replica when stream terminates
 	defer s.removeReplica(replJoin.NodeId)
 
 	for {
 		ack, err := nodeStream.Recv()
-		if err == io.EOF {
-			log.Printf("This is an EOF error receiving stream from replica node")
-			//return err
-			break
-		}
 		if err != nil {
-			log.Printf("Error receiving stream from replica node")
+			log.Printf("Replica #%d is dead..", replJoin.NodeId)
 			break
 		}
 		log.Printf("Received acknowledge from node #%d on version #%d", ack.NodeId, ack.Version)
@@ -143,7 +144,6 @@ func (s *Server) removeReplica(nodeId int32) {
 		}
 	}
 	s.broadcastUpdate()
-	log.Printf("Replica #%d is dead..", nodeId)
 }
 
 // Helper method to remove from slice
@@ -242,9 +242,8 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 				return
 			} else {
 				log.Printf("The leader is dead.. I am not worthy (yet).\nAttempting to dial new leader..")
-				// TODO Maybe decrease this? or make it a for loop of e.g. 5 attempts
-				time.Sleep(time.Second * 5)
-				connectionToLeader(s)
+				time.Sleep(time.Second * 2)
+				connectToLeader(s)
 				return
 			}
 		}
@@ -270,8 +269,8 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 	}
 }
 
-// TODO: Update port, since it is irellevant when replicas acts as clients
-// TODO: tidy up the multiple port listening
+// launchServer starts a server for replicas on port 5400 and a server for clients bidding on port 5000
+// and creates a reader for starting/stopping an auction
 func (s *Server) launchServer() {
 
 	log.Printf("Attemps to create listener on port 5400")
@@ -283,17 +282,16 @@ func (s *Server) launchServer() {
 
 	list, err := net.Listen("tcp", fmt.Sprintf("localhost:5000"))
 	if err != nil {
-		log.Fatalf("Failed to listen on port 5000")
+		log.Fatalf("Failed to listen on port 5000 and 5400")
 		return
 	}
 
 	// grpc server options:
 	var opts []grpc.ServerOption
 
-	// spin grpc server:
+	// spin grpc servers
 	grpcNodesServer := grpc.NewServer(opts...)
 	grpcAuctionServer := grpc.NewServer(opts...)
-	//auctionPB.RegisterAuctionServer(grpcNodesServer, s)
 	auctionPB.RegisterNodesServer(grpcNodesServer, s)
 	auctionPB.RegisterAuctionServer(grpcAuctionServer, s)
 	go func() {
@@ -308,18 +306,14 @@ func (s *Server) launchServer() {
 			log.Fatalf("Failed to serve: %v", err)
 		}
 	}()
-	log.Printf("Server is listening on port %d", s.port)
+	log.Printf("Server is listening on port 5000 for auction bids")
+	log.Printf("Server is listening on port 5400 for replica ack's")
 	s.parseInput()
 }
 
 func (s *Server) connectToLeader() auctionPB.NodesClient {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-
-	// maybe timeout is useful:
-	//timeContext, cancel := context.WithTimeout(context.Background(), time.Second)
-	//defer cancel()
-
 	log.Printf("Trying to dial 5400")
 	conn, err := grpc.Dial(fmt.Sprintf(":5400"), opts...)
 	if err != nil {
@@ -346,6 +340,7 @@ func setLog() *os.File {
 	return f
 }
 
+// parseInput allows server to start or end an auction from cmd-line
 func (s *Server) parseInput() {
 	fmt.Println("Press <start> or <end> to start/end auction")
 	reader := bufio.NewReader(os.Stdin)
