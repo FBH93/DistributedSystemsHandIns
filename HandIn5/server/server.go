@@ -193,10 +193,11 @@ func (s *Server) broadcastUpdate() {
 	log.Printf("Broadcasting update for version #%d to replica nodes...", s.version)
 	for id, node := range s.nodes {
 		if err := node.Send(&auctionPB.Update{Version: s.version,
-			LeaderId:    s.leaderId,
-			HighestBid:  s.highBid,
-			AuctionLive: s.auctionLive,
-			Crashes:     s.crashes}); err != nil {
+			LeaderId:      s.leaderId,
+			HighestBid:    s.highBid,
+			AuctionLive:   s.auctionLive,
+			Crashes:       s.crashes,
+			HighestBidder: s.highBidder}); err != nil {
 			log.Printf("Error broadcasting to node #%d.. Is it dead?", id)
 		}
 	}
@@ -205,6 +206,7 @@ func (s *Server) broadcastUpdate() {
 func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 	for {
 		update, err := stream.Recv()
+		// Connection to leader is dead:
 		if err != nil {
 			// Stream closed
 			// TODO: Talk with Jonas about this
@@ -232,9 +234,16 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 		s.highBid = update.HighestBid
 		s.crashes = update.Crashes
 		s.version = update.Version
+		s.highBidder = update.HighestBidder
 		log.Printf("Got update from leader. Now on version %d", s.version)
 		// Acknowledge leader with updated information
-		if err := stream.Send(&auctionPB.Update{Version: s.version, LeaderId: s.leaderId, AuctionLive: s.auctionLive, HighestBid: s.highBid, NodeId: s.id}); err != nil {
+		if err := stream.Send(&auctionPB.Update{
+			Version:       s.version,
+			LeaderId:      s.leaderId,
+			AuctionLive:   s.auctionLive,
+			HighestBid:    s.highBid,
+			HighestBidder: s.highBidder,
+			NodeId:        s.id}); err != nil {
 			log.Fatalf("Something went wrong sending acknowledge to leader ")
 		}
 	}
