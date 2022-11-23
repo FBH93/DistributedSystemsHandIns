@@ -107,6 +107,7 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 	s.nodes[replJoin.NodeId] = nodeStream
 	// Enqueue to leader queue
 	s.leaderQueue = append(s.leaderQueue, replJoin.NodeId)
+	s.broadcastUpdate()
 	defer s.removeReplica(replJoin.NodeId)
 
 	for {
@@ -127,13 +128,18 @@ func (s *Server) UpdateNodes(nodeStream auctionPB.Nodes_UpdateNodesServer) error
 
 func (s *Server) removeReplica(nodeId int32) {
 	delete(s.nodes, nodeId)
-	//for i, v:= range s.leaderQueue {
-	//	if i == nodeId {
-	//
-	//	}
-	//}
+	for i, v := range s.leaderQueue {
+		if v == nodeId {
+			s.leaderQueue = remove(s.leaderQueue, i)
+		}
+	}
 	s.broadcastUpdate()
 	log.Printf("Replica #%d is dead..", nodeId)
+}
+
+// Helper method to remove from slice
+func remove(slice []int32, s int) []int32 {
+	return append(slice[:s], slice[s+1:]...)
 }
 
 func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctionPB.BidReply, error) {
@@ -205,7 +211,8 @@ func (s *Server) broadcastUpdate() {
 			HighestBid:    s.highBid,
 			AuctionLive:   s.auctionLive,
 			Crashes:       s.crashes,
-			HighestBidder: s.highBidder}); err != nil {
+			HighestBidder: s.highBidder,
+			Nodes:         s.leaderQueue}); err != nil {
 			log.Printf("Error broadcasting to node #%d.. Is it dead?", id)
 		}
 	}
@@ -216,14 +223,11 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 		update, err := stream.Recv()
 		// Connection to leader is dead:
 		if err != nil {
-			//if s.leaderId+1 == s.id {
-			s.crashes++
-			if s.crashes == s.id {
-				//if int32(s.leaderQueue.Peek()) == s.id {
-				//	heap.Pop(&s.leaderQueue)
+			if s.leaderQueue[0] == s.id {
 				// Become leader
 				s.leaderId = s.id
-				//s.crashes++
+				// remove yourself from leader queue
+				s.leaderQueue = remove(s.leaderQueue, 0)
 				log.Printf("The leader is dead.. Node #%d is now the new leader", s.id)
 				s.launchServer()
 				return
@@ -231,8 +235,6 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 				log.Printf("The leader is dead.. I am not worthy (yet).\nAttempting to dial new leader..")
 				// TODO Maybe decrease this? or make it a for loop of e.g. 5 attempts
 				time.Sleep(time.Second * 5)
-				// Exit out of this forever loop??
-				// e.g. add return value, then return s.connectToLeader()
 				connectionToLeader(s)
 				return
 			}
@@ -243,6 +245,7 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 		s.crashes = update.Crashes
 		s.version = update.Version
 		s.highBidder = update.HighestBidder
+		s.leaderQueue = update.Nodes
 		log.Printf("Got update from leader. Now on version %d", s.version)
 		// Acknowledge leader with updated information
 		if err := stream.Send(&auctionPB.Update{
@@ -251,7 +254,8 @@ func (s *Server) receive(stream auctionPB.Nodes_UpdateNodesClient) {
 			AuctionLive:   s.auctionLive,
 			HighestBid:    s.highBid,
 			HighestBidder: s.highBidder,
-			NodeId:        s.id}); err != nil {
+			NodeId:        s.id,
+			Nodes:         s.leaderQueue}); err != nil {
 			log.Fatalf("Something went wrong sending acknowledge to leader ")
 		}
 	}
@@ -314,29 +318,4 @@ func (s *Server) connectToLeader() auctionPB.NodesClient {
 	leader := auctionPB.NewNodesClient(conn)
 	log.Printf("Successfully connected to the leader")
 	return leader
-}
-
-// MinHeap:
-// An IntHeap is a min-heap of ints.
-type IntHeap []int
-
-func (h IntHeap) Len() int           { return len(h) }
-func (h IntHeap) Less(i, j int) bool { return h[i] < h[j] }
-func (h IntHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-func (h IntHeap) Peek() int {
-	return h[0]
-}
-
-func (h *IntHeap) Push(x any) {
-	// Push and Pop use pointer receivers because they modify the slice's length,
-	// not just its contents.
-	*h = append(*h, x.(int))
-}
-
-func (h *IntHeap) Pop() any {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[0 : n-1]
-	return x
 }
