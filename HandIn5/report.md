@@ -6,9 +6,11 @@ The goal of this hand-in is to implement, using Go, a simple auction system that
 
 The architecture is set up in such a way that the client need not know anything about the state of the system of servers. It is the responsibility of the servers to always provide the service at a particular port. If a leader dies, another replica should take over and start listening on the same port as the previous leader - and have a state consistent with the previous leader. This means that the distributed nature of the system is transparent to clients.
 
+Our system thus consists of 1 leader server, and multiple (from 1 to n) server replicas. On the client side at least 1 (and possibly many) client communicates with the leader server via rpc calls. 
+
 ## Diagram
 
-
+![Architecture](assets/AuctionSystemArchitecture.jpg)
 
 ## Client
 
