@@ -191,6 +191,7 @@ func (s *Server) Bid(ctx context.Context, bidReq *auctionPB.BidRequest) (*auctio
 // Result returns the state of the auction, highest bid and the highest bidder
 // return 0 for highest bid and bidder if no bid has been placed
 func (s *Server) Result(ctx context.Context, resReq *auctionPB.ResultRequest) (*auctionPB.ResultReply, error) {
+	log.Printf("Node #%d: Received result request", s.id)
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	var comment string
