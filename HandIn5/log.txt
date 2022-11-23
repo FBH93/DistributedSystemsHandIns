@@ -22,6 +22,7 @@
 Comment: Your bid on amount: 5 is accepted
 Outcome: SUCCESS
 2022/11/23 15:56:07 Client #1: Requesting result...
+2022/11/23 15:56:07 Node #0: Received result request
 2022/11/23 15:56:07 Client #1: Got result from server:
 Comment: The auction is live. Current highest bidder is id #1
 Outcome: 5
@@ -36,6 +37,7 @@ Outcome: 5
 Comment: Your bid on amount: 3 was too low
 Outcome: FAIL
 2022/11/23 15:56:17 Client #1: Requesting result...
+2022/11/23 15:56:17 Node #1: Received result request
 2022/11/23 15:56:17 Client #1: Got result from server:
 Comment: The auction is closed. Winner is id #1
 Outcome: 5
