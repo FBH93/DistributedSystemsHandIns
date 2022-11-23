@@ -85,17 +85,17 @@ Take the example of the leader failing. Backup replicas will know this by the cl
 In `log.txt`, we demonstrate the an instance of the system running.
 
 Scenario:
-We start a server 1 (port 5400, Server/Leader) and server 2 (port 5401, replica) and 1 client. 
-Server1 starts an auction. 
-Client sends a bid request to the auction. 
-Server handles bid, sends copy of data to replica, then responds to client request. 
-Client sends result request. 
-Server replies with result of current highest bidder. 
+1. We start a server 1 (port 5400, Server/Leader) and server 2 (port 5401, replica) and 1 client. 
+2. Server1 starts an auction. 
+3. Client sends a bid request to the auction. 
+4. Server handles bid, sends copy of data to replica, then responds to client request. 
+5. Client sends result request. 
+6. Server replies with result of current highest bidder. 
 
-Server crashes. Replica detects connection is dead, and makes itself the new leader. 
+7. **Server crashes**. Replica detects connection is dead, and makes itself the new leader. 
 
-Client sends a bid for a lesser amount.
-New leader handles bid, sends back failure response since amount is lower than the highest bid. 
-New leader closes auction.
-Client sends result request.
-New Leader replies with result of winner bid.
+8. Client sends a bid for a lesser amount.
+9. New leader handles bid, sends back failure response since amount is lower than the highest bid. 
+10. New leader closes auction.
+11. Client sends result request.
+12. New Leader replies with result of winner bid.
