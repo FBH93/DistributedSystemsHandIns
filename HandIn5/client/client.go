@@ -5,14 +5,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	auctionPB "github.com/FBH93/DistributedSystemsHandIns/HandIn5/grpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	auctionPB "github.com/FBH93/DistributedSystemsHandIns/HandIn5/grpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Flags:
@@ -25,6 +26,10 @@ type Client struct {
 
 func main() {
 	flag.Parse()
+
+	//COMMENT OUT THESE TWO LINES TO REMOVE LOGGING TO TXT
+	logfile := setLog() //print log to a log.txt file instead of the console
+	defer logfile.Close()
 
 	parseId, _ := strconv.ParseInt(*clientId, 10, 32)
 	id := int32(parseId)
@@ -86,4 +91,20 @@ func (c *Client) bid(amount int32) {
 	}
 
 	log.Printf("Got ack from server:\nComment: %s\nOutcome: %v", *ack.Comment, ack.Outcome)
+}
+
+// setLog sets the logger to use a log.txt file instead of the console
+func setLog() *os.File {
+	// Clears the log.txt file when a new server is started
+	if err := os.Truncate(*clientId+"Log.txt", 0); err != nil {
+		log.Printf("Failed to truncate: %v", err)
+	}
+
+	// This connects to the log file/changes the output of the log informaiton to the log.txt file.
+	f, err := os.OpenFile(*clientId+"log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	log.SetOutput(f)
+	return f
 }
